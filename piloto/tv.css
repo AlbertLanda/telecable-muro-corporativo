@@ -1,0 +1,48 @@
+html,body{margin:0;min-height:100%;background:#eeece7;color:#253132;font-family:Arial,Helvetica,sans-serif}
+body{padding:20px}
+button,input,select{font:inherit}
+button,.cursor-interaction{cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid #b18f44;outline-offset:3px}
+[hidden]{display:none!important}
+.pilot-toolbar{max-width:1024px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pilot-toolbar strong{font-size:20px}
+.pilot-toolbar p{margin:5px 0;font-size:13px;line-height:1.5}
+.pilot-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pilot-toolbar button,#pilot-tv-tools button{border:1px solid #526c63;background:#344f4a;color:#fff;border-radius:8px;min-height:44px;padding:10px 14px}
+.pilot-help,#pilot-wake-status{flex-basis:100%;color:#53645e}
+#tc-mural-videos{max-width:1024px;margin:0 auto}
+.pilot-frame{position:relative;width:100%;height:576px;overflow:hidden;background:#101818}
+/* A fixed 16:9 design canvas is scaled by tv.js, including on older webOS. */
+#tc-mural-videos .mv-screen{position:absolute;left:50%;top:50%;width:1024px;height:576px!important;min-height:576px!important;padding:16px 20px 0!important;transform:translate(-50%,-50%);transform-origin:center;display:grid;grid-template-rows:48px minmax(0,1fr) 100px 28px;row-gap:10px}
+#tc-mural-videos .mv-header{margin:0;padding-right:0;min-height:0}
+#tc-mural-videos .mv-grid,#tc-mural-videos .mv-stage,#tc-mural-videos .mv-photo-scene{min-height:0}
+#tc-mural-videos .mv-sidebar{min-height:0}
+#tc-mural-videos .mv-weather{padding-top:12px;padding-bottom:10px}
+#tc-mural-videos .mv-birthdays{padding-top:12px;padding-bottom:8px}
+#tc-mural-videos .mv-birthdays h2{margin:7px 0 9px}
+#tc-mural-videos .mv-birthday-row{padding:8px 0}
+#tc-mural-videos .mv-bottom-modules{margin-top:0;min-height:0}
+#tc-mural-videos .mv-bottom-modules>section,#tc-mural-videos .mv-bottom-modules>.mv-music-strip{padding-top:10px;padding-bottom:10px}
+#tc-mural-videos .mv-footer{min-height:0}
+#tc-mural-videos .pilot-weather-icon{font-size:29px;color:#ebd6a4;line-height:1}
+#tc-mural-videos.mvp-on .mv-screen{padding:0!important}
+#tc-mural-videos .mvp-empty::before{content:none}
+#tc-mural-videos .mv-preview-controls{padding-bottom:28px}
+.tv-mode{padding:0;overflow:hidden;background:#101818}
+.tv-mode .pilot-toolbar,.tv-mode .mv-preview-controls{display:none}
+.tv-mode .pilot-frame{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10}
+.tv-mode .mv-celebrate,.tv-mode .mvp-player-bar{display:none!important}
+.tv-mode .mv-quiz-options{pointer-events:none}
+#pilot-tv-tools{position:fixed;left:20px;right:20px;top:20px;z-index:100;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:16px;background:#eeece7;border-radius:12px;box-shadow:0 8px 35px #0005}
+#tc-mural-videos .mvp-retry button{min-height:44px;font-size:15px}
+@media(max-width:600px){
+  body{padding:10px}
+  #tc-mural-videos .mv-scene-controls{flex-wrap:wrap;gap:8px}
+  #tc-mural-videos .mv-current-scene{width:100%;text-align:left}
+  #tc-mural-videos .mv-editor-fields{grid-template-columns:1fr}
+  #tc-mural-videos .mv-editor-fields input,#tc-mural-videos .mv-editor-fields select,#tc-mural-videos .mvp-options select{font-size:16px}
+  #tc-mural-videos .mvp-options>label{min-width:0;flex-basis:100%}
+  #tc-mural-videos .mvp-list li{flex-wrap:wrap}
+  #tc-mural-videos .mvp-row-actions{margin-left:auto}
+  #tc-mural-videos .mvp-schedule{margin-left:0;width:100%}
+}
