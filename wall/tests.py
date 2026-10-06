@@ -1,5 +1,6 @@
 import copy
 import io
+import re
 import tempfile
 from datetime import datetime, timedelta, timezone as dt_timezone
 from pathlib import Path
@@ -200,6 +201,60 @@ class PublishingTests(TestCase):
         strict=Client(enforce_csrf_checks=True);strict.force_login(self.editor)
         self.assertEqual(strict.post('/panel/publicar/',{'revision':0}).status_code,403)
         self.assertEqual(self.client.get('/panel/publicar/').status_code,405)
+
+    @override_settings(ALLOWED_HOSTS=['127.0.0.1', 'localhost', 'muro.example.test'], CSRF_TRUSTED_ORIGINS=[])
+    def test_login_and_logout_forms_with_csrf_for_both_roles(self):
+        # Exercise the actual forms; force_login() bypasses this browser flow.
+        for user in [self.editor, self.admin]:
+            for host, secure in [('127.0.0.1:8000', False), ('localhost:8000', False), ('muro.example.test', True)]:
+                with self.subTest(user=user.username, host=host):
+                    browser = Client(enforce_csrf_checks=True)
+                    transport = {'HTTP_HOST': host, 'secure': secure}
+                    login_page = browser.get('/cuentas/entrar/?next=/panel/', **transport)
+                    self.assertEqual(login_page.status_code, 200)
+                    self.assertEqual(login_page['Referrer-Policy'], 'same-origin')
+                    token = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', login_page.content.decode()).group(1)
+                    origin = ('https://' if secure else 'http://') + host
+                    response = browser.post('/cuentas/entrar/', {
+                        'username': user.username, 'password': 'only-for-tests',
+                        'csrfmiddlewaretoken': token, 'next': '/panel/',
+                    }, HTTP_ORIGIN=origin, **transport)
+                    self.assertRedirects(response, '/panel/', fetch_redirect_response=False)
+                    self.assertEqual(browser.session['_auth_user_id'], str(user.pk))
+                    panel = browser.get('/panel/', **transport)
+                    self.assertEqual(panel.status_code, 200)
+                    self.assertEqual(browser.get('/panel/pantallas/', **transport).status_code, 200 if user.is_superuser else 403)
+                    token = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', panel.content.decode()).group(1)
+                    response = browser.post('/cuentas/salir/', {'csrfmiddlewaretoken': token}, HTTP_ORIGIN=origin, **transport)
+                    self.assertEqual(response.status_code, 302)
+                    self.assertNotIn('_auth_user_id', browser.session)
+
+    @override_settings(ALLOWED_HOSTS=['127.0.0.1'], CSRF_TRUSTED_ORIGINS=[])
+    def test_login_still_rejects_null_foreign_origins_and_missing_token(self):
+        for origin, include_token in [('null', True), ('https://untrusted.example', True), ('http://127.0.0.1:8000', False)]:
+            with self.subTest(origin=origin, include_token=include_token):
+                browser = Client(enforce_csrf_checks=True)
+                page = browser.get('/cuentas/entrar/', HTTP_HOST='127.0.0.1:8000')
+                data = {'username': self.editor.username, 'password': 'only-for-tests'}
+                if include_token:
+                    data['csrfmiddlewaretoken'] = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', page.content.decode()).group(1)
+                response = browser.post('/cuentas/entrar/', data, HTTP_HOST='127.0.0.1:8000', HTTP_ORIGIN=origin)
+                self.assertEqual(response.status_code, 403)
+                self.assertNotIn('_auth_user_id', browser.session)
+
+    @override_settings(ALLOWED_HOSTS=['muro.example.test'], CSRF_TRUSTED_ORIGINS=[])
+    def test_https_login_checks_referer_when_origin_is_absent(self):
+        for referer in [None, 'https://untrusted.example/login/', 'https://muro.example.test/cuentas/entrar/']:
+            with self.subTest(referer=referer):
+                browser = Client(enforce_csrf_checks=True)
+                page = browser.get('/cuentas/entrar/', HTTP_HOST='muro.example.test', secure=True)
+                token = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', page.content.decode()).group(1)
+                headers = {'HTTP_REFERER': referer} if referer else {}
+                response = browser.post('/cuentas/entrar/', {
+                    'username': self.editor.username, 'password': 'only-for-tests', 'csrfmiddlewaretoken': token,
+                }, HTTP_HOST='muro.example.test', secure=True, **headers)
+                expected = 302 if referer == 'https://muro.example.test/cuentas/entrar/' else 403
+                self.assertEqual(response.status_code, expected)
 
     def test_publish_failure_does_not_replace_previous_live_version(self):
         previous=publish(self.editor,0)

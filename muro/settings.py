@@ -54,7 +54,9 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = not DEBUG
-SECURE_REFERRER_POLICY = 'no-referrer'
+# Native form POSTs need their same-origin context for Django's CSRF checks.
+# no-referrer can make browsers send Origin: null, including on the login form.
+SECURE_REFERRER_POLICY = 'same-origin'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 if os.getenv('DJANGO_TRUST_PROXY', '0') == '1':

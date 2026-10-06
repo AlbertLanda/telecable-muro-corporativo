@@ -22,6 +22,8 @@ Abre **http://127.0.0.1:8000/panel/** e ingresa con la cuenta de TI. La prueba l
 
 ## Cuenta del jefe de Imagen
 
+Si una versión anterior muestra **403 — Origin checking failed - null** al iniciar sesión, actualiza `feature/panel-publicacion`, reinicia Django y abre de nuevo la página de acceso desde su enlace; no reenvíes el formulario anterior. Se corrigió `SECURE_REFERRER_POLICY` a `same-origin` para que los formularios conserven el origen requerido por CSRF. No hace falta volver a crear usuarios ni cambiar permisos.
+
 En otra terminal del mismo proyecto:
 
 ```powershell
