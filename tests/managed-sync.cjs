@@ -1,0 +1,46 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {setup}=require('./dom-shim.cjs');
+const code=fs.readFileSync(path.join(__dirname,'../piloto/managed.js'),'utf8');
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'Bienvenidos',welcome_body:'Equipo',ticker:'Aviso publicado',interval_minutes:1,videos_per_turn:'all',quiz_enabled:false,qr_enabled:false},contents:[{id:1,kind:'message',title:'Publicación inicial',body:'Sin ejemplos',duration:16},{id:2,kind:'video',title:'Video publicado',url:'/tv/token/archivo/clip/'}],birthdays:[],music_url:null};
+
+(async()=>{
+  const t=setup();t.win.MURO_BOOT={manifest:structuredClone(initial),poll_url:'/tv/token/manifest/'};
+  let response=structuredClone(initial),fail=false,revoked=false;
+  t.run(code,{AbortController,setTimeout,clearTimeout,fetch:async()=>{if(fail)throw new Error('offline');return {ok:!revoked,status:revoked?404:200,json:async()=>structuredClone(response)}}});
+  assert.equal(t.q('.mv-photo-copy h1').textContent,'Publicación inicial');
+  assert(t.q('[data-module="weather"]').hidden);assert(t.q('[data-module="birthdays"]').hidden);
+  assert(t.doc.body.classList.contains('ready'));
+  assert.equal(t.q('#mvp-interval').value,'60000');
+  response.signature='v2';response.version=2;response.contents[0].title='Segunda publicación';
+  t.advance(30000);await tick();
+  assert.equal(t.q('.mv-photo-copy h1').textContent,'Publicación inicial','Polling must not interrupt a scene');
+  t.advance(2000);
+  assert.equal(t.q('.mv-photo-copy h1').textContent,'Segunda publicación');
+  t.click('video-test');await tick();const player=t.q('.mvp-player');
+  assert.equal(player.src,'/tv/token/archivo/clip/');assert.equal(player.muted,true);
+  response.signature='v3';response.version=3;response.contents[0].title='Después del video';
+  t.advance(29000);await tick();
+  assert.equal(t.q('.mv-photo-copy h1').textContent,'Segunda publicación');assert(t.win.TelecableWall.getState().playlistActive);
+  player.ended=true;player.emit('ended');await tick();
+  assert.equal(t.q('.mv-photo-copy h1').textContent,'Después del video');
+  assert(!t.win.TelecableWall.getState().playlistActive);
+  fail=true;t.advance(30000);await tick();assert.equal(t.q('.mv-photo-copy h1').textContent,'Después del video');
+  assert.match(t.doc.getElementById('managed-status').textContent,/Sin conexión/);
+  fail=false;revoked=true;t.advance(30000);await tick();
+  assert(!t.doc.body.classList.contains('ready'));assert(t.win.TelecableWall.getState().paused);
+  assert.equal(t.doc.getElementById('pilot-tv-tools').hidden,false);
+
+  const b=setup(),data=structuredClone(initial);
+  data.contents=[{id:1,kind:'image',title:'Foto real',body:'Equipo',url:'/foto/',duration:8},{id:2,kind:'event',title:'Encuentro',body:'Información',event_at:'2026-10-08T14:00:00Z',location:'Sala A',duration:8},{id:3,kind:'recognition',title:'Gracias',body:'Nuestro equipo',duration:8}];
+  data.birthdays=[{name:'Nombre Real',department:'Imagen',day:6,month:10,is_today:true,days_until:0}];
+  data.config.quiz_enabled=true;data.preview=true;
+  b.win.MURO_BOOT={manifest:data,poll_url:null};b.run(code,{AbortController,setTimeout,clearTimeout});
+  assert.equal(b.q('.mv-hero-photo').src,'/foto/');assert(!b.q('.mv-hero-photo').hidden);
+  assert.equal(b.q('.mv-birthday-row strong').textContent,'Nombre Real');
+  b.advance(8000);assert.equal(b.scene(),'2');assert.equal(b.q('.mv-active h1').textContent,'Encuentro');
+  b.advance(8000);assert.equal(b.scene(),'3');assert.equal(b.q('.mv-active h1').textContent,'Gracias');
+  b.advance(8000);assert.equal(b.scene(),'1');assert.match(b.q('.mv-active h1').textContent,/Nombre/);
+  b.advance(16000);assert.equal(b.scene(),'4');
+  console.log('PASS: published rendering, image/event/birthday/recognition plans, pending updates at scene/video boundaries, muted autoplay, offline retention and revoked displays.');
+})().catch(error=>{console.error(error);process.exitCode=1});

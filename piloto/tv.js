@@ -96,6 +96,7 @@
     requestWake();
   }
   function leaveTV() {
+    if(window.MURO_BOOT){hideMenu();exitFull();return;}
     tvMode = false;
     document.body.classList.remove('tv-mode');
     wall.setTvMode(false);
@@ -147,5 +148,5 @@
     wall.setInterval(30000);
     document.getElementById('pilot-quick').textContent = 'Prueba rápida activa · 30 s';
   }
-  if (params.get('tv') === '1') enterTV(false); else fit();
+  if (params.get('tv') === '1' || window.MURO_BOOT) enterTV(false); else fit();
 })();

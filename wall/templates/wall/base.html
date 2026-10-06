@@ -1,0 +1,8 @@
+{% load static %}<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{% block title %}Muro · Telecable{% endblock %}</title><link rel="stylesheet" href="{% static 'panel/panel.css' %}"></head>
+<body>
+<header class="app-header"><a class="brand" href="{% url 'dashboard' %}"><img src="{% static 'pilot/assets/logo-telecable.png' %}" alt="Telecable"><span>Muro corporativo</span></a>{% if user.is_authenticated %}<div class="user-menu"><span>{{ user.get_username }}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet">Cerrar sesión</button></form></div>{% endif %}</header>
+{% if user.is_authenticated %}<nav class="app-nav" aria-label="Navegación del panel"><a href="{% url 'dashboard' %}">Contenido y ajustes</a><a href="{% url 'library' %}">Biblioteca</a><a href="{% url 'history' %}">Publicaciones</a>{% if perms.wall.manage_displays %}<a href="{% url 'displays' %}">Pantallas</a>{% endif %}{% if user.is_superuser %}<a href="{% url 'admin:index' %}">Usuarios · TI</a>{% endif %}</nav>{% endif %}
+<main class="app-main">{% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
+<footer class="app-footer">Telecable · Comunicación interna <span>Horarios de Lima</span></footer>
+</body></html>
