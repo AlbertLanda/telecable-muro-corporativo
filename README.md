@@ -58,12 +58,15 @@ Los cumpleaños se repiten por día y mes; el 29 de febrero se celebra cuando ex
 
 El panel necesita Django y una base de datos compartida. Publicar solo `piloto/` **no publica el panel**. Sigue [la guía de despliegue](docs/panel-y-despliegue.md).
 
+Para Azure, sigue [la preparación y despliegue a App Service](docs/azure.md). Incluye un script de carga del código, arranque automático, comprobación de PostgreSQL/archivos y códigos de incidencia para revisar errores. Requiere un recurso de destino y acceso a Azure; subir código a esta rama no despliega automáticamente.
+
 Este backend aún no se ha desplegado ni se han creado cuentas reales. Para TVs sin PC dedicada, debe alojarse en un servidor accesible. Azure es una opción. El panel no modifica la política de suspensión de la Miray: sigue [la prueba física del piloto](docs/prueba-tv.md).
 
 ## Pruebas
 
 ```powershell
 .\.venv\Scripts\python.exe manage.py test wall
+.\.venv\Scripts\python.exe manage.py test muro
 .\.venv\Scripts\python.exe manage.py check
 .\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
 ```
