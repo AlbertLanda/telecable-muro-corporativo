@@ -127,7 +127,10 @@ class PublishingTests(TestCase):
         self.assertEqual(outsider.get(url).status_code,404)
         publish(self.editor,0)
         response = outsider.get(url)
-        self.assertEqual(response.status_code,200);response.close()
+        self.assertEqual(response.status_code,200)
+        # Consume the stream so Django's test client closes it with its own
+        # request_finished handling; closing directly breaks the test transaction.
+        self.assertGreater(len(b''.join(response.streaming_content)),0)
         draft_url = reverse('tv_media',args=[self.screen.token,self.video.pk])
         self.assertEqual(outsider.get(draft_url).status_code,404)
         self.screen.active=False;self.screen.save()
