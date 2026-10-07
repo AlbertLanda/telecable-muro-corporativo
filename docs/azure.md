@@ -32,6 +32,16 @@ Los medios se guardan en `/home/telecable-muro/media`, fuera del código reempla
 
 ## Desplegar desde Windows
 
+Para la primera base, TI puede ejecutar interactivamente `scripts/initialize_azure_database.py`
+en Cloud Shell con `--subscription`, `--group`, `--app`, `--host` y `--admin`.
+Requiere las dependencias de `requirements.txt`. Muestra el destino y solicita confirmación,
+la clave administrativa actual y una clave nueva exclusiva del muro, sin mostrarlas.
+Crea `telecable_muro` y `telecable_muro_app`, con permisos para migrar y usar sus propias tablas,
+sin otorgar administración del servidor. Guarda las variables privadas en el App Service
+identificado por la etiqueta del proyecto. No crea planes, servidores ni reglas de red.
+Si ya existe la base, el rol o la configuración PostgreSQL, se detiene sin reemplazarlos.
+Si hay una interrupción parcial, revisar el estado antes de repetir; no elimina recursos.
+
 Con Azure CLI instalado, dentro del repositorio actualizado:
 
 ```powershell

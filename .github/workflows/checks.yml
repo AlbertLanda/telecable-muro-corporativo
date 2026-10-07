@@ -48,3 +48,4 @@ jobs:
       - run: python tests/validate.py
       - run: node tests/playback.cjs && node tests/tv-shell.cjs && node tests/managed-sync.cjs
       - run: python scripts/package_release.py
+      - run: python tests/database_bootstrap.py
