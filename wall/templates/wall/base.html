@@ -18,7 +18,6 @@
   <a href="{% url 'library' %}" {% if request.resolver_match.url_name == 'library' %}aria-current="page"{% endif %}>Biblioteca</a>
   <a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}aria-current="page"{% endif %}>Publicaciones</a>
   {% if perms.wall.manage_displays %}<a href="{% url 'displays' %}" {% if request.resolver_match.url_name == 'displays' %}aria-current="page"{% endif %}>Pantallas</a>{% endif %}
-  {% if user.is_superuser %}<a href="{% url 'admin:index' %}">Usuarios · TI</a>{% endif %}
 </nav>
 {% endif %}
 <main class="app-main" id="main">
