@@ -85,7 +85,7 @@
   q('[data-action="quiz"]').addEventListener('click',()=>rotate(4));
   qa('[data-answer]').forEach(button=>button.addEventListener('click',()=>revealQuiz(Number(button.dataset.answer))));
   q('[data-action="rotation"]').addEventListener('click',()=>{paused=!paused;lastTick=performance.now();rotationState();if(playlistActive){if(paused)playlistVideo.pause();else playPlaylistVideo();}else if(scene===0&&video.getAttribute('src')){if(paused)video.pause();else if(video.ended)rotate(1);else video.play().catch(()=>{q('.mv-editor-status').textContent='Pulsa reproducir en el video.';});}renderSchedule();});
-  q('[data-action="celebrate"]').addEventListener('click',()=>{burst();q('.mv-current-scene').textContent='¡Feliz cumpleaños, Valeria!';});
+  q('[data-action="celebrate"]').addEventListener('click',()=>{burst();q('.mv-current-scene').textContent=managed?q('[data-scene="1"] .mv-nameplate strong').textContent+' · ¡Feliz cumpleaños!':'¡Feliz cumpleaños, Valeria!';});
   q('[data-action="applaud"]').addEventListener('click',()=>{burst();q('.mv-current-scene').textContent='¡Un aplauso para el equipo!';});
   function updateClock(){
     const now=new Date();q('.mv-clock time').textContent=new Intl.DateTimeFormat('es-PE',{timeZone:'America/Lima',hour:'2-digit',minute:'2-digit',hour12:false}).format(now);q('.mv-clock time').setAttribute('datetime',now.toISOString());q('.mv-clock>span').textContent=new Intl.DateTimeFormat('es-PE',{timeZone:'America/Lima',weekday:'long',day:'numeric',month:'long'}).format(now);

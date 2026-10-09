@@ -54,14 +54,26 @@
     if(!plan.length)return;
     position=(position+1)%plan.length;
     const entry=plan[position],item=entry.item,base='.mv-scene[data-scene="'+entry.scene+'"] ';
+    root.classList.toggle('mv-birthday-focus',entry.scene===1);
     if(entry.scene===0){
       const image=q('.mv-hero-photo');image.hidden=!item.url;
       if(item.url){image.src=item.url;image.alt=item.title;}
       text('.mv-photo-copy h1',item.title);text('.mv-photo-copy p',item.body);text('.mv-photo-tags>span',current.config.name||'TELECABLE');
       text('.mv-photo-copy>span','COMUNICACIÓN INTERNA');
     }else if(entry.scene===1){
-      text(base+'h1','¡Feliz cumple, '+item.name.split(/\s+/)[0]+'!');text(base+'.mv-description','Tu energía también nos conecta.');
+      text(base+'h1','¡Feliz cumpleaños!');
+      text(base+'.mv-overline',dateText(Date.UTC(2000,item.month-1,item.day,12),{day:'numeric',month:'long'}));
+      text(base+'.mv-description',item.greeting||'Que este nuevo año te traiga alegría, nuevos logros y muchos momentos para celebrar. ¡Gracias por ser parte del equipo!');
       text(base+'.mv-nameplate>span',initials(item.name));text(base+'.mv-nameplate strong',item.name);text(base+'.mv-nameplate small',item.department);text(base+'.mv-medallion>span',initials(item.name));
+      text(base+'[data-action="celebrate"]','Celebrar con '+item.name.split(/\s+/)[0]+' ✦');
+      q(base+'.mv-nameplate').classList.toggle('mv-long-name',item.name.length>45);
+      const photo=q(base+'.mv-birthday-photo'),fallback=q(base+'.mv-medallion>span');
+      photo.hidden=true;photo.removeAttribute('src');fallback.hidden=false;
+      if(item.photo_url){
+        photo.onload=()=>{photo.hidden=false;fallback.hidden=true;};
+        photo.onerror=()=>{photo.hidden=true;fallback.hidden=false;};
+        photo.alt='Foto de '+item.name;photo.src=item.photo_url;
+      }else{photo.onload=null;photo.onerror=null;photo.alt='';}
     }else if(entry.scene===2){
       text(base+'h1',item.title);text(base+'.mv-description',item.body);text(base+'.mv-overline','Nos encontramos.');
       text(base+'.mv-event-meta strong',dateText(item.event_at,{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}));text(base+'.mv-event-meta>span',item.location);

@@ -37,6 +37,7 @@
 #tc-mural-videos .mv-nameplate>div{display:flex;flex-direction:column;gap:3px}
 #tc-mural-videos .mv-nameplate strong{font-size:12px;font-weight:600}
 #tc-mural-videos .mv-nameplate small{font-size:10px;color:#c6d1c5}
+#tc-mural-videos .mv-birthday-signature{display:none}
 #tc-mural-videos .mv-celebration-art{position:absolute;width:196px;height:230px;right:18px;top:88px;pointer-events:none;z-index:1;animation:mva-hover 7s ease-in-out infinite}
 #tc-mural-videos .mv-aura{position:absolute;width:196px;height:196px;left:0;top:10px;border-radius:50%;background:radial-gradient(circle,#c0cbb022 30%,#becfc522 50%,transparent 71%);border:1px solid #b5c7b750}
 #tc-mural-videos .mv-aura::after{content:"";position:absolute;inset:14px;border-radius:50%;border:1px solid #b5c7b766}

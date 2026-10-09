@@ -20,6 +20,15 @@ def check_revision(wall, expected):
         raise ValidationError('Otra persona guardó cambios. Recarga la página antes de continuar.')
 
 
+def birthday_snapshot(birthday):
+    birthday.full_clean()
+    if birthday.photo_id and not birthday.photo.file.storage.exists(birthday.photo.file.name):
+        raise ValidationError('Falta la foto de «'+birthday.name+'». Revisa la biblioteca antes de publicar.')
+    return {'id':birthday.pk,'name':birthday.name,'department':birthday.department,
+            'day':birthday.day,'month':birthday.month,'greeting':birthday.greeting,
+            'photo_id':str(birthday.photo_id) if birthday.photo_id else None}
+
+
 def snapshot(wall):
     wall.full_clean()
     posts, assets = [], set()
@@ -31,9 +40,10 @@ def snapshot(wall):
             assets.add(str(item.asset_id))
         posts.append({'id':item.pk,'kind':item.kind,'title':item.title,'body':item.body,'asset_id':str(item.asset_id) if item.asset_id else None,'event_at':item.event_at.isoformat() if item.event_at else None,'location':item.location,'duration':item.duration_seconds,'starts_at':item.starts_at.isoformat() if item.starts_at else None,'ends_at':item.ends_at.isoformat() if item.ends_at else None})
     birthdays = []
-    for birthday in wall.birthdays.filter(enabled=True):
-        birthday.full_clean()
-        birthdays.append({'id':birthday.pk,'name':birthday.name,'department':birthday.department,'day':birthday.day,'month':birthday.month})
+    for birthday in wall.birthdays.filter(enabled=True).select_related('photo'):
+        birthdays.append(birthday_snapshot(birthday))
+        if birthday.photo_id:
+            assets.add(str(birthday.photo_id))
     if wall.music_id:
         if not wall.music.file.storage.exists(wall.music.file.name):
             raise ValidationError('No está disponible el archivo de música seleccionado.')
@@ -74,6 +84,9 @@ def manifest(data, version, media_url, preview=False, now=None):
         active.append(item)
     resolved['contents'] = active
     for birthday in resolved['birthdays']:
+        # Older publications have no photo or personalized greeting.
+        birthday['photo_url'] = media_url(birthday['photo_id']) if birthday.get('photo_id') else None
+        birthday.setdefault('greeting','')
         birthday['is_today'] = (birthday['month'],birthday['day']) == (today.month,today.day)
         for year in range(today.year,today.year+9):
             try:

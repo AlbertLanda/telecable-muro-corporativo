@@ -8,6 +8,7 @@ urlpatterns = [
     path('panel/contenido/<int:pk>/',views.content_edit,name='content_edit'),
     path('panel/cumpleanos/nuevo/',views.birthday_edit,name='birthday_new'),
     path('panel/cumpleanos/<int:pk>/',views.birthday_edit,name='birthday_edit'),
+    path('panel/cumpleanos/<int:pk>/vista-previa/',views.birthday_preview,name='birthday_preview'),
     path('panel/quitar/<str:kind>/<int:pk>/',views.delete_entry,name='delete_entry'),
     path('panel/publicar/',views.publish_draft,name='publish'),
     path('panel/publicaciones/',views.history,name='history'),

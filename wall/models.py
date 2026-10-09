@@ -98,6 +98,8 @@ class Birthday(models.Model):
     wall = models.ForeignKey(Wall, on_delete=models.CASCADE, related_name='birthdays')
     name = models.CharField('Nombre', max_length=80)
     department = models.CharField('Área', max_length=80, blank=True)
+    photo = models.ForeignKey(Asset, verbose_name='Foto', on_delete=models.PROTECT, null=True, blank=True, related_name='birthdays')
+    greeting = models.CharField('Dedicatoria', max_length=180, blank=True)
     day = models.PositiveSmallIntegerField('Día', validators=[MinValueValidator(1),MaxValueValidator(31)])
     month = models.PositiveSmallIntegerField('Mes', choices=[(i,calendar.month_name[i]) for i in range(1,13)])
     enabled = models.BooleanField('Incluir al publicar', default=True)
@@ -106,6 +108,8 @@ class Birthday(models.Model):
         ordering = ['month','day','name']
 
     def clean(self):
+        if self.photo_id and self.photo.kind != 'image':
+            raise ValidationError({'photo':'Selecciona una imagen de Biblioteca.'})
         try:
             date(2000, self.month, self.day)
         except (ValueError,TypeError):
