@@ -66,7 +66,7 @@ az webapp log tail --subscription "ID_DE_LA_SUSCRIPCION" --resource-group "GRUPO
 
 ## Primera puesta en marcha
 
-1. En la consola SSH del App Service, entra en la carpeta de la aplicación y activa el entorno Python usado por el servidor. Ejecuta `python manage.py createsuperuser` y `python manage.py create_editor jefeimagen`. Introduce las contraseñas interactivamente. Las cuentas locales de tu PC no se copian a Azure.
+1. Desde el repositorio en Cloud Shell, con sus dependencias instaladas, ejecuta `python scripts/initialize_azure_users.py --subscription ID --group GRUPO --app APP`. El asistente comprueba el destino y las migraciones, carga la configuración privada sin mostrarla y solicita confirmación antes de crear el administrador de TI y `jefeimagen`. Introduce las contraseñas interactivamente. Con `--check` solo valida; al repetirlo conserva los usuarios existentes. Las cuentas locales de tu PC no se copian a Azure. Como alternativa, en SSH del App Service y su entorno Python, ejecuta `python manage.py createsuperuser` y `python manage.py create_editor jefeimagen`.
 2. Abre el enlace HTTPS del panel, inicia sesión y verifica los permisos de Imagen.
 3. Sube una imagen y un MP4, crea contenidos y publica una primera versión. TI genera el enlace de la pantalla.
 4. Comprueba el video y HTTP Range. Reinicia el App Service y confirma que siguen disponibles usuarios, publicación y archivos.
