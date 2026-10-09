@@ -8,6 +8,19 @@ Las fechas de inicio/retiro y los cumpleaños se resuelven al consultar el manif
 
 El editor permite cambiar contenido, orden, duración y módulos disponibles dentro del diseño aprobado. No es un editor libre de posiciones tipo Canva.
 
+## Cumpleaños con foto y dedicatoria
+
+1. En Biblioteca, cargar una fotografía individual como Imagen. Es opcional; sin foto se muestran las iniciales. La foto se encaja completa en su marco, sin recortarla.
+2. En Cumpleaños → Añadir cumpleaños, guardar nombre, área, día, mes y, si se desea, foto y dedicatoria de hasta 180 caracteres. No se registra edad, año de nacimiento ni teléfono.
+3. En la lista de cumpleaños, usar **Ver tarjeta**. La vista muestra solo esa celebración, incluso si la fecha está en el futuro o el registro está desactivado. No cambia la fecha, el borrador ni las pantallas.
+4. Publicar el borrador para incorporarlo al muro. Cada año se muestra la tarjeta en su día según la hora de Lima. Si coinciden varias personas, cada una tiene su turno de 16 segundos. Los próximos cumpleaños siguen en el listado lateral durante el resto del muro.
+
+Durante la celebración se amplía la tarjeta y se ocultan temporalmente los módulos laterales e inferiores. Se conserva el encabezado con la hora y el pie del muro. La tarjeta incluye nombre, área, foto, dedicatoria y los efectos de celebración automáticos existentes, respetando la preferencia de movimiento reducido. Si la foto falla al cargar, aparecen las iniciales y la reproducción continúa.
+
+Las fotos usan el mismo acceso protegido que el resto de Biblioteca y se incluyen en la publicación. Guardar cambios no altera una publicación anterior. Las publicaciones creadas antes de esta mejora continúan funcionando con iniciales y la dedicatoria predeterminada. Las tarjetas de WhatsApp se pueden conservar como material gráfico en Biblioteca; esta mejora no envía mensajes ni se conecta a los grupos.
+
+El despliegue debe ejecutar la migración `0002_birthday_photo_greeting` y actualizar los recursos estáticos mediante el procedimiento habitual. La migración agrega campos opcionales y conserva los cumpleaños existentes. Después de desplegar, recargar una vez los navegadores de las TV para cargar el nuevo reproductor.
+
 ## PostgreSQL
 
 Crea una base dedicada y un usuario con permisos. Configura `DJANGO_USE_SQLITE=0`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST` y `POSTGRES_PORT` en `.env` o en las variables privadas del servicio.

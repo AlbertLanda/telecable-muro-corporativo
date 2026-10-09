@@ -33,14 +33,28 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
 
   const b=setup(),data=structuredClone(initial);
   data.contents=[{id:1,kind:'image',title:'Foto real',body:'Equipo',url:'/foto/',duration:8},{id:2,kind:'event',title:'Encuentro',body:'Información',event_at:'2026-10-08T14:00:00Z',location:'Sala A',duration:8},{id:3,kind:'recognition',title:'Gracias',body:'Nuestro equipo',duration:8}];
-  data.birthdays=[{name:'Nombre Real',department:'Imagen',day:6,month:10,is_today:true,days_until:0}];
+  data.birthdays=[{name:'Nombre Real',department:'Imagen',day:6,month:10,is_today:true,days_until:0,photo_url:'/foto-cumple/',greeting:'Una dedicatoria personal.'},
+    {name:'Segunda Persona',department:'TI',day:6,month:10,is_today:true,days_until:0},
+    {name:'Mañana',department:'TI',day:7,month:10,is_today:false,days_until:1}];
   data.config.quiz_enabled=true;data.preview=true;
   b.win.MURO_BOOT={manifest:data,poll_url:null};b.run(code,{AbortController,setTimeout,clearTimeout});
   assert.equal(b.q('.mv-hero-photo').src,'/foto/');assert(!b.q('.mv-hero-photo').hidden);
   assert.equal(b.q('.mv-birthday-row strong').textContent,'Nombre Real');
   b.advance(8000);assert.equal(b.scene(),'2');assert.equal(b.q('.mv-active h1').textContent,'Encuentro');
   b.advance(8000);assert.equal(b.scene(),'3');assert.equal(b.q('.mv-active h1').textContent,'Gracias');
-  b.advance(8000);assert.equal(b.scene(),'1');assert.match(b.q('.mv-active h1').textContent,/Nombre/);
+  b.advance(8000);assert.equal(b.scene(),'1');assert.equal(b.q('.mv-active .mv-nameplate strong').textContent,'Nombre Real');
+  assert(b.root.classList.contains('mv-birthday-focus'));
+  assert.equal(b.q('.mv-active .mv-description').textContent,'Una dedicatoria personal.');
+  assert.match(b.q('.mv-active .mv-overline').textContent,/6 de octubre/);
+  const birthdayPhoto=b.q('.mv-birthday-photo'),fallback=b.q('.mv-medallion>span');
+  assert.equal(birthdayPhoto.src,'/foto-cumple/');assert(birthdayPhoto.hidden);
+  birthdayPhoto.onload();assert(!birthdayPhoto.hidden);assert(fallback.hidden);
+  birthdayPhoto.onerror();assert(birthdayPhoto.hidden);assert(!fallback.hidden);
+  b.click('celebrate');assert.match(b.q('.mv-current-scene').textContent,/Nombre Real/);
+  b.advance(16000);assert.equal(b.scene(),'1');assert.equal(b.q('.mv-active .mv-nameplate strong').textContent,'Segunda Persona');
+  assert.equal(birthdayPhoto.src,'');assert(birthdayPhoto.hidden);assert.equal(fallback.textContent,'SP');
+  assert.match(b.q('.mv-active .mv-description').textContent,/Gracias por ser parte/);
   b.advance(16000);assert.equal(b.scene(),'4');
+  assert(!b.root.classList.contains('mv-birthday-focus'));
   console.log('PASS: published rendering, image/event/birthday/recognition plans, pending updates at scene/video boundaries, muted autoplay, offline retention and revoked displays.');
 })().catch(error=>{console.error(error);process.exitCode=1});

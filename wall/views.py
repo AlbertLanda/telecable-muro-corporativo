@@ -11,7 +11,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_safe
 from .forms import AssetForm, BirthdayForm, ContentForm, DisplayForm, WallForm
 from .models import Asset, Birthday, Content, Display, Wall, display_token
-from .services import check_revision, get_wall, manifest, publish, published_manifest, snapshot
+from .services import birthday_snapshot, check_revision, get_wall, manifest, publish, published_manifest, snapshot
 
 
 def access(permission='edit_wall'):
@@ -50,6 +50,26 @@ def content_edit(request, pk=None):
 @access()
 def birthday_edit(request, pk=None):
     return edit_entry(request,Birthday,BirthdayForm,'Cumpleaños',pk)
+
+
+@access()
+@require_safe
+@never_cache
+def birthday_preview(request, pk):
+    wall = get_wall()
+    birthday = get_object_or_404(Birthday.objects.select_related('photo'),pk=pk,wall=wall)
+    try:
+        person = birthday_snapshot(birthday)
+    except ValidationError as error:
+        messages.error(request,' '.join(error.messages))
+        return redirect('birthday_edit',pk=pk)
+    data = {'config':{'name':wall.name,'ticker':'Celebramos contigo.',
+                     'interval_minutes':15,'videos_per_turn':'all','quiz_enabled':False,'qr_enabled':False},
+            'contents':[],'birthdays':[person],'music_id':None}
+    initial = manifest(data,f'draft-{wall.revision}',lambda asset:reverse('editor_media',args=[asset]),preview=True)
+    # Preview this card regardless of the date; never modify or publish the record.
+    initial['birthdays'][0].update(is_today=True,days_until=0)
+    return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':None}})
 
 
 def edit_entry(request, model, form_class, title, pk):

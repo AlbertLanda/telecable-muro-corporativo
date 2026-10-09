@@ -110,6 +110,84 @@ class PublishingTests(TestCase):
         self.assertNotEqual(before['signature'],next_day['signature'])
         self.assertFalse(next_day['birthdays'][0]['is_today'])
 
+    def test_birthday_photo_is_private_until_published_and_snapshot_is_immutable(self):
+        self.post.delete()  # This photo is used only by the birthday.
+        person = Birthday.objects.create(wall=self.wall,name='Persona de prueba',day=6,month=10,
+                                         photo=self.asset,greeting='¡Gracias por ser parte del equipo!')
+        url = reverse('tv_media',args=[self.screen.token,self.asset.pk])
+        self.assertEqual(Client().get(url).status_code,404)
+        first = publish(self.editor,0)
+        self.assertIn(self.asset,first.assets.all())
+        self.assertEqual(self.live()['birthdays'][0]['photo_url'],url)
+        self.assertEqual(Client().head(url).status_code,200)
+        person.photo=None;person.greeting='Otra dedicatoria';person.save()
+        self.assertEqual(self.live()['birthdays'][0]['greeting'],'¡Gracias por ser parte del equipo!')
+        self.assertEqual(self.live()['birthdays'][0]['photo_url'],url)
+        publish(self.editor,0)
+        self.assertIsNone(self.live()['birthdays'][0]['photo_url'])
+        self.assertEqual(Client().head(url).status_code,200)  # Old TVs can finish their card.
+
+    def test_birthday_form_accepts_optional_image_and_rejects_video_or_long_greeting(self):
+        data={'revision':0,'name':'Persona de prueba','department':'Operaciones','day':26,'month':9,
+              'photo':str(self.asset.pk),'greeting':'Un gran año para ti.','enabled':'on'}
+        self.assertTrue(BirthdayForm(data).is_valid())
+        self.assertEqual(self.client.post('/panel/cumpleanos/nuevo/',data).status_code,302)
+        person=Birthday.objects.get(name='Persona de prueba')
+        self.assertEqual(person.photo_id,self.asset.pk)
+        self.wall.refresh_from_db();self.assertEqual(self.wall.revision,1)
+        self.assertEqual(self.live()['version'],0)
+        self.assertFalse(BirthdayForm(dict(data,photo=str(self.video.pk))).is_valid())
+        person.photo=self.video
+        with self.assertRaises(ValidationError):person.full_clean()
+        self.assertFalse(BirthdayForm(dict(data,greeting='x'*181)).is_valid())
+        self.assertTrue(BirthdayForm(dict(data,photo='',greeting='')).is_valid())
+
+    def test_individual_birthday_preview_does_not_change_date_or_publication(self):
+        person=Birthday.objects.create(wall=self.wall,name='Tarjeta </script><script>alert(1)</script>',
+                                       day=26,month=9,enabled=False,photo=self.asset,greeting='Un nuevo año.')
+        url=reverse('birthday_preview',args=[person.pk])
+        self.assertEqual(Client().get(url).status_code,302)
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.client.get(url).status_code,403)
+        self.client.force_login(self.editor)
+        response=self.client.get(url)
+        self.assertEqual(response.status_code,200)
+        data=response.context['bootstrap']['manifest']
+        self.assertTrue(data['preview']);self.assertIsNone(response.context['bootstrap']['poll_url'])
+        self.assertEqual(data['contents'],[]);self.assertEqual(len(data['birthdays']),1)
+        self.assertTrue(data['birthdays'][0]['is_today'])
+        self.assertEqual(data['birthdays'][0]['photo_url'],reverse('editor_media',args=[self.asset.pk]))
+        self.assertNotContains(response,'</script><script>alert(1)</script>')
+        person.refresh_from_db();self.wall.refresh_from_db()
+        self.assertEqual((person.day,person.month,person.enabled),(26,9,False))
+        self.assertEqual(self.wall.revision,0);self.assertEqual(Publication.objects.count(),0)
+
+    def test_missing_birthday_photo_does_not_replace_live_publication(self):
+        first=publish(self.editor,0)
+        missing=Asset.objects.create(title='Foto ausente',kind='image',file='missing.jpg',size=10,
+                                     content_type='image/jpeg',created_by=self.editor)
+        person=Birthday.objects.create(wall=self.wall,name='Persona de prueba',day=26,month=9,photo=missing)
+        with self.assertRaises(ValidationError):publish(self.editor,0)
+        self.wall.refresh_from_db();self.assertEqual(self.wall.current_publication_id,first.pk)
+        self.assertRedirects(self.client.get(reverse('birthday_preview',args=[person.pk])),
+                             reverse('birthday_edit',args=[person.pk]),fetch_redirect_response=False)
+
+    def test_old_birthday_publications_remain_compatible_and_repeat_each_year(self):
+        data,_=snapshot(self.wall)
+        data['birthdays']=[{'id':1,'name':'Persona de prueba','department':'TI','day':26,'month':9}]
+        first=Publication.objects.create(wall=self.wall,number=1,draft_revision=0,snapshot=data,published_by=self.editor)
+        restored=publish(self.editor,0,restore=first.pk)
+        for year in [2026,2027]:
+            at_midnight=datetime(year,9,26,5,0,tzinfo=dt_timezone.utc)
+            before=manifest(restored.snapshot,2,lambda pk:'/asset/'+pk,now=at_midnight-timedelta(minutes=1))
+            today=manifest(restored.snapshot,2,lambda pk:'/asset/'+pk,now=at_midnight)
+            after=manifest(restored.snapshot,2,lambda pk:'/asset/'+pk,now=at_midnight+timedelta(days=1))
+            self.assertFalse(before['birthdays'][0]['is_today'])
+            self.assertTrue(today['birthdays'][0]['is_today'])
+            self.assertFalse(after['birthdays'][0]['is_today'])
+            self.assertIsNone(today['birthdays'][0]['photo_url'])
+            self.assertEqual(today['birthdays'][0]['greeting'],'')
+
     def test_preview_and_panel_templates_render(self):
         for url in ['/panel/','/panel/biblioteca/','/panel/contenido/nuevo/','/panel/cumpleanos/nuevo/','/panel/publicaciones/','/panel/vista-previa/']:
             self.assertEqual(self.client.get(url).status_code,200,url)

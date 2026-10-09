@@ -35,11 +35,18 @@ class ContentForm(RevisionForm):
 class BirthdayForm(RevisionForm):
     class Meta:
         model = Birthday
-        fields = ['name','department','day','month','enabled']
+        fields = ['name','department','day','month','photo','greeting','enabled']
+        widgets = {'greeting':forms.Textarea(attrs={'rows':3,'maxlength':180})}
+        help_texts = {
+            'photo':'Opcional. Sube primero la foto a Biblioteca. Se muestra completa; una foto individual se verá mejor a distancia.',
+            'greeting':'Opcional, hasta 180 caracteres. Si lo dejas vacío, el muro mostrará una felicitación del equipo.',
+            'day':'Se repite cada año, según la fecha de Lima. No se necesita el año de nacimiento.',
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['month'].choices = [(i,n) for i,n in enumerate(['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],1)]
+        self.fields['photo'].queryset = Asset.objects.filter(kind='image')
 
 
 class DisplayForm(forms.ModelForm):

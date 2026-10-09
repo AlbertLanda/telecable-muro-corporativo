@@ -11,3 +11,34 @@ body.managed{padding:0;background:#101818;overflow:hidden}
 .managed #tc-mural-videos .mv-description{white-space:pre-line}
 .managed #tc-mural-videos .mv-quiz-scene h1{font-size:32px}
 #managed-status{flex-basis:100%;margin:0;text-align:center;font:13px/1.4 Arial,sans-serif;color:#253b33}
+
+/* Give each birthday a full-width moment within the existing 16:9 canvas. */
+.managed #tc-mural-videos.mv-birthday-focus .mv-screen{grid-template-rows:48px minmax(0,1fr) 28px}
+.managed #tc-mural-videos.mv-birthday-focus .mv-grid{grid-template-columns:minmax(0,1fr)}
+.managed #tc-mural-videos.mv-birthday-focus .mv-stage{grid-column:1}
+.managed #tc-mural-videos.mv-birthday-focus .mv-sidebar,
+.managed #tc-mural-videos.mv-birthday-focus .mv-bottom-modules{display:none}
+.managed #tc-mural-videos [data-scene="1"]{padding:28px 36px 35px}
+.managed #tc-mural-videos [data-scene="1"] .mv-kicker{font-size:11px;letter-spacing:2px;margin-bottom:20px}
+.managed #tc-mural-videos [data-scene="1"] .mv-birthday-copy{width:56%;max-width:56%}
+.managed #tc-mural-videos [data-scene="1"] .mv-overline{font-size:16px;margin:0 0 10px;color:#d3e0d6}
+.managed #tc-mural-videos [data-scene="1"] h1{font-size:44px;line-height:1.08;letter-spacing:-1.6px;color:#efd8a7;margin-bottom:14px}
+.managed #tc-mural-videos [data-scene="1"] .mv-nameplate{margin:0 0 18px}
+.managed #tc-mural-videos [data-scene="1"] .mv-nameplate>span{display:none}
+.managed #tc-mural-videos [data-scene="1"] .mv-nameplate>div{min-width:0;gap:6px}
+.managed #tc-mural-videos [data-scene="1"] .mv-nameplate strong{font-size:30px;line-height:1.12;overflow-wrap:anywhere}
+.managed #tc-mural-videos [data-scene="1"] .mv-long-name strong{font-size:24px}
+.managed #tc-mural-videos [data-scene="1"] .mv-nameplate small{font-size:15px;line-height:1.25;overflow-wrap:anywhere}
+.managed #tc-mural-videos [data-scene="1"] .mv-description{font-size:19px;line-height:1.4;margin-bottom:14px;overflow-wrap:anywhere;white-space:normal}
+.managed #tc-mural-videos [data-scene="1"] .mv-birthday-signature{display:block;font-size:13px;color:#c8d9ce;margin:0}
+.managed #tc-mural-videos [data-scene="1"] .mv-celebration-art{width:32%;height:auto;right:40px;top:44px;bottom:45px;transform:none;animation:none}
+.managed #tc-mural-videos [data-scene="1"] .mv-aura{width:100%;height:100%;top:0;border-radius:24px}
+.managed #tc-mural-videos [data-scene="1"] .mv-medallion{inset:12px;width:auto;height:auto;border-radius:18px;transform:none;overflow:hidden;background:linear-gradient(150deg,#546d5e,#243d35);border:1px solid #cfbd8a77;box-shadow:0 14px 30px #0d181855;color:#efd8a7;animation:mva-birthday-reveal 1s ease both}
+.managed #tc-mural-videos [data-scene="1"] .mv-medallion>span{font-size:100px;letter-spacing:-4px}
+.managed #tc-mural-videos [data-scene="1"] .mv-birthday-photo{width:100%;height:calc(100% - 34px);position:absolute;top:0;left:0;object-fit:contain;background:#1c3029}
+.managed #tc-mural-videos [data-scene="1"] .mv-medallion>small{position:absolute;bottom:0;left:0;right:0;background:#203a30eb;color:#f4e5bc;padding:12px;text-align:center;font-size:10px;letter-spacing:2px}
+.managed #tc-mural-videos [data-scene="1"] .mv-label-one{right:-8px;top:0;font-size:12px;transform:rotate(4deg)}
+.managed #tc-mural-videos [data-scene="1"] .mv-label-two{bottom:-5px;left:-8px;font-size:11px}
+.managed #tc-mural-videos [data-scene="1"] .mv-celebrate{display:none}
+@keyframes mva-birthday-reveal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.managed #tc-mural-videos [data-scene="1"] .mv-medallion{animation:none}}
