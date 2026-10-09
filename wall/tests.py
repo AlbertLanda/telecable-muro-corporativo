@@ -153,7 +153,8 @@ class PublishingTests(TestCase):
         response=self.client.get(url)
         self.assertEqual(response.status_code,200)
         data=response.context['bootstrap']['manifest']
-        self.assertTrue(data['preview']);self.assertIsNone(response.context['bootstrap']['poll_url'])
+        self.assertTrue(data['preview'])
+        self.assertEqual(response.context['bootstrap']['poll_url'],reverse('birthday_preview_manifest',args=[person.pk]))
         self.assertEqual(data['contents'],[]);self.assertEqual(len(data['birthdays']),1)
         self.assertTrue(data['birthdays'][0]['is_today'])
         self.assertEqual(data['birthdays'][0]['photo_url'],reverse('editor_media',args=[self.asset.pk]))
@@ -196,6 +197,106 @@ class PublishingTests(TestCase):
         self.assertContains(response,'draft-0')
         self.assertNotContains(response,'{% static')
         self.assertEqual(self.live()['version'],0)
+
+    def test_live_previews_refresh_saved_changes_without_publishing(self):
+        first = publish(self.editor,0)
+        draft_url, live_url = reverse('preview_manifest'), reverse('published_preview_manifest')
+        initial = self.client.get(draft_url)
+        etag = initial['ETag']
+        self.assertEqual(self.client.get(draft_url,HTTP_IF_NONE_MATCH=etag).status_code,304)
+        self.assertIn('no-store',initial['Cache-Control'])
+        data = {'revision':0,'kind':'image','title':'Cambio guardado','asset':self.asset.pk,
+                'duration_seconds':16,'sort_order':10,'enabled':'on'}
+        self.assertEqual(self.client.post(reverse('content_edit',args=[self.post.pk]),data).status_code,302)
+        changed = self.client.get(draft_url,HTTP_IF_NONE_MATCH=etag)
+        self.assertEqual(changed.status_code,200)
+        self.assertEqual(changed.json()['contents'][0]['title'],'Cambio guardado')
+        self.assertEqual(self.client.get(live_url).json()['contents'][0]['title'],'Titular original')
+        self.assertEqual(self.live()['version'],first.number)
+        publish(self.editor,1)
+        self.assertEqual(self.client.get(live_url).json()['contents'][0]['title'],'Cambio guardado')
+        self.assertEqual(self.client.get(reverse('preview')).context['bootstrap']['poll_url'],draft_url)
+        live_page = self.client.get(reverse('published_preview'))
+        self.assertEqual(live_page.context['bootstrap']['poll_url'],live_url)
+        self.assertFalse(live_page.context['bootstrap']['manifest']['preview'])
+        self.assertNotContains(live_page,self.screen.token)
+
+    def test_preview_polling_permissions_and_birthday_refresh(self):
+        person = Birthday.objects.create(wall=self.wall,name='Persona',day=26,month=9,enabled=False)
+        birthday_url = reverse('birthday_preview_manifest',args=[person.pk])
+        urls = [reverse('preview_manifest'),reverse('published_preview'),reverse('published_preview_manifest'),birthday_url]
+        anonymous = Client()
+        for url in urls:
+            self.assertEqual(anonymous.get(url).status_code,302)
+        self.client.force_login(self.viewer)
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code,403)
+        self.client.force_login(self.editor)
+        first = self.client.get(birthday_url)
+        person.greeting='Nueva dedicatoria';person.save()
+        second = self.client.get(birthday_url,HTTP_IF_NONE_MATCH=first['ETag'])
+        self.assertEqual(second.status_code,200)
+        self.assertEqual(second.json()['birthdays'][0]['greeting'],'Nueva dedicatoria')
+        self.assertTrue(second.json()['birthdays'][0]['is_today'])
+        self.assertFalse(Birthday.objects.get(pk=person.pk).enabled)
+        for url in urls:
+            self.assertEqual(self.client.post(url).status_code,405)
+
+    def test_tv_etag_updates_and_revocation_are_checked_before_not_modified(self):
+        url = reverse('tv_manifest',args=[self.screen.token])
+        anonymous = Client()
+        initial = anonymous.get(url)
+        unchanged = anonymous.get(url,HTTP_IF_NONE_MATCH=initial['ETag'])
+        self.assertEqual(unchanged.status_code,304)
+        self.assertEqual(unchanged.content,b'')
+        publish(self.editor,0)
+        changed = anonymous.get(url,HTTP_IF_NONE_MATCH=initial['ETag'])
+        self.assertEqual(changed.status_code,200)
+        self.assertEqual(changed.json()['version'],1)
+        self.screen.active=False;self.screen.save()
+        self.assertEqual(anonymous.get(url,HTTP_IF_NONE_MATCH=changed['ETag']).status_code,404)
+
+    def test_guided_dashboard_matches_saved_draft_after_restore(self):
+        self.assertFalse(self.client.get(reverse('dashboard')).context['draft_matches_live'])
+        first=publish(self.editor,0)
+        self.assertTrue(self.client.get(reverse('dashboard')).context['draft_matches_live'])
+        self.post.title='Otro mensaje';self.post.save()
+        publish(self.editor,0)
+        self.assertTrue(self.client.get(reverse('dashboard')).context['draft_matches_live'])
+        publish(self.editor,0,restore=first.pk)
+        response=self.client.get(reverse('dashboard'))
+        self.assertFalse(response.context['draft_matches_live'])
+        self.assertContains(response,'Borrador pendiente de publicar')
+        # The publication state comes from the saved draft, not invalid POST values.
+        response=self.client.post(reverse('dashboard'),{'revision':0,'name':'Ajuste inválido'})
+        self.assertFalse(response.context['draft_matches_live'])
+
+    def test_library_shortcuts_preselect_compatible_assets_without_saving(self):
+        count=Content.objects.count()
+        response=self.client.get(reverse('content_new'),{'asset':str(self.video.pk)})
+        self.assertEqual(response.context['form']['kind'].value(),'video')
+        self.assertEqual(str(response.context['form']['asset'].value()),str(self.video.pk))
+        response=self.client.get(reverse('birthday_new'),{'asset':str(self.asset.pk)})
+        self.assertEqual(str(response.context['form']['photo'].value()),str(self.asset.pk))
+        for value in [str(self.video.pk),'invalid-uuid']:
+            response=self.client.get(reverse('birthday_new'),{'asset':value})
+            self.assertEqual(response.status_code,200)
+            self.assertIsNone(response.context['form']['photo'].value())
+        self.assertEqual(Content.objects.count(),count)
+        self.assertEqual(Publication.objects.count(),0)
+
+    def test_invalid_draft_has_recoverable_preview_error(self):
+        first=publish(self.editor,0)
+        missing=Asset.objects.create(title='No disponible',kind='image',file='missing-guided.jpg',size=10,
+                                    content_type='image/jpeg',created_by=self.editor)
+        self.post.asset=missing;self.post.save()
+        response=self.client.get(reverse('preview_manifest'))
+        self.assertEqual(response.status_code,422)
+        self.assertIn('Falta el archivo',response.json()['error'])
+        self.assertRedirects(self.client.get(reverse('preview')),reverse('dashboard'),fetch_redirect_response=False)
+        response=self.client.get(reverse('dashboard'))
+        self.assertContains(response,'Falta el archivo')
+        self.assertEqual(self.live()['version'],first.number)
 
     def test_tv_requires_active_capability_and_only_sees_published_assets(self):
         outsider = Client()

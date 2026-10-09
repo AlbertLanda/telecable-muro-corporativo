@@ -1,2 +1,11 @@
 {{ form.non_field_errors }}
-<div class="fields">{% for field in form %}{% if field.is_hidden %}{{ field }}{{ field.errors }}{% else %}<div class="field {% if field.field.widget.input_type == 'checkbox' %}check-field{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endif %}{% endfor %}</div>
+{% for field in form.hidden_fields %}{{ field }}{{ field.errors }}{% endfor %}
+{% if form.sections %}
+  {% for section in form.sections %}
+  <fieldset class="form-section"><legend>{{ section.title }}</legend><p>{{ section.description }}</p><div class="fields">
+    {% for field in section.fields %}{% include 'wall/field.html' %}{% endfor %}
+  </div></fieldset>
+  {% endfor %}
+{% else %}
+<div class="fields">{% for field in form.visible_fields %}{% include 'wall/field.html' %}{% endfor %}</div>
+{% endif %}
