@@ -1,0 +1,129 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Piloto del muro corporativo de Telecable con datos y videos de ejemplo.">
+  <title>Telecable · Muro corporativo</title>
+  <link rel="stylesheet" href="{% static 'pilot/wall.css' %}">
+  <link rel="stylesheet" href="{% static 'pilot/tv.css' %}">
+  <link rel="stylesheet" href="{% static 'pilot/managed.css' %}">
+  <script defer src="{% static 'pilot/bootstrap.js' %}"></script>
+  <script defer src="{% static 'pilot/wall.js' %}"></script>
+  <script defer src="{% static 'pilot/tv.js' %}"></script>
+  <script defer src="{% static 'pilot/managed.js' %}"></script>
+</head>
+<body class="managed">
+{{ bootstrap|json_script:"muro-bootstrap" }}
+  <header class="pilot-toolbar">
+    <div><strong>Muro corporativo</strong><p>Telecable · Piloto para pantallas</p></div>
+    <div class="pilot-actions">
+      <button id="pilot-enter" type="button">Abrir modo TV</button>
+      <button id="pilot-quick" type="button">Prueba rápida · 30 s</button>
+    </div>
+    <p class="pilot-help">Modo TV se ajusta a la pantalla. OK / Enter muestra sus opciones. Los ajustes y archivos propios son locales a esta sesión.</p>
+    <p id="pilot-wake-status" role="status">Protección de pantalla: pendiente de comprobar en la TV.</p>
+  </header>
+  <nav id="pilot-tv-tools" aria-label="Opciones de la pantalla" hidden>
+    <button id="pilot-video" type="button">Probar videos en pantalla completa</button>
+    <button id="pilot-sound" type="button">Activar música</button>
+    <button id="pilot-hide" type="button">Ocultar opciones</button>
+    <button id="pilot-exit" type="button">Volver a ajustes</button>
+  </nav>
+  <noscript>Activa JavaScript para reproducir el muro automáticamente.</noscript>
+<div id="tc-mural-videos">
+  <div class="pilot-frame"><section class="mv-screen" aria-label="Muro corporativo animado de Telecable">
+    <header class="mv-header">
+      <div class="mv-logo"><img src="{% static 'pilot/assets/logo-telecable.png' %}" alt="Telecable, conectando oportunidades"></div>
+      <div class="mv-channel"><span class="mv-channel-dot"></span><span>COMUNICACIÓN INTERNA<br><strong>Somos Telecable</strong></span></div>
+      <div class="mv-clock"><time>14:53</time><span>Lunes, 5 de octubre</span></div>
+    </header>
+    <div class="mv-grid">
+      <main class="mv-stage" aria-label="Historias del equipo">
+        <div class="mv-glow mv-glow-a" aria-hidden="true"></div><div class="mv-glow mv-glow-b" aria-hidden="true"></div>
+        <div class="mv-orbits" aria-hidden="true"><span></span><span></span><span></span></div>
+        <section class="mv-scene mv-photo-scene mv-active" data-scene="0" aria-hidden="false">
+          <img class="mv-hero-photo" src="{% static 'pilot/assets/equipo-ilustrativo.jpg' %}" alt="Imagen ilustrativa generada de un equipo colaborando en una oficina de telecomunicaciones">
+          <video class="mv-hero-video" playsinline preload="metadata" hidden></video>
+          <div class="mv-photo-shade"></div>
+          <div class="mv-photo-tags"><span>SOMOS TELECABLE</span><small class="mv-media-note">Imagen ilustrativa · IA</small></div>
+          <div class="mv-photo-copy"><span>NUESTRA GENTE, NUESTRA CONEXIÓN</span><h1>La conexión más importante<br><em>somos nosotros.</em></h1><p>Historias y momentos que nos acercan.</p></div>
+        </section>
+        <section class="mv-scene" data-scene="1" aria-hidden="true" inert>
+          <div class="mv-kicker"><span></span>HOY CELEBRAMOS CONTIGO</div>
+          <div class="mv-birthday-copy"><p class="mv-overline">Un día para sonreír.</p><h1>¡Feliz cumple,<br><em>Valeria!</em></h1><p class="mv-description">Tu energía también<br>nos conecta.</p><div class="mv-nameplate"><span>VR</span><div><strong>Valeria Rojas</strong><small>Atención al cliente</small></div></div></div>
+          <div class="mv-celebration-art" aria-hidden="true"><div class="mv-aura"></div><div class="mv-medallion"><span>VR</span><small>HOY ES TU DÍA</small></div><span class="mv-float-label mv-label-one">¡A celebrar! ✦</span><span class="mv-float-label mv-label-two">Un gran año comienza.</span><span class="mv-spark mv-spark-a">✦</span><span class="mv-spark mv-spark-b">✦</span></div>
+          <button type="button" class="mv-celebrate cursor-interaction" data-action="celebrate">Celebrar con Valeria <span aria-hidden="true">↗</span></button>
+        </section>
+        <section class="mv-scene" data-scene="2" aria-hidden="true" inert>
+          <div class="mv-kicker"><span></span>NOS ENCONTRAMOS</div>
+          <div class="mv-birthday-copy"><p class="mv-overline">Aprendemos juntos.</p><h1>Escuchar mejor.<br><em>Conectar más.</em></h1><p class="mv-description">Taller de atención al cliente</p><div class="mv-event-meta"><strong>Jueves 08 de octubre · 9:00 a. m.</strong><span>Sala de capacitación</span></div></div>
+          <div class="mv-calendar-art" aria-hidden="true"><span>OCTUBRE</span><strong>08</strong><small>JUEVES</small></div>
+          <span class="mv-scene-footer">Un espacio para compartir lo que sabemos.</span>
+        </section>
+        <section class="mv-scene" data-scene="3" aria-hidden="true" inert>
+          <div class="mv-kicker"><span></span>EL TALENTO ESTÁ EN CASA</div>
+          <div class="mv-birthday-copy"><p class="mv-overline">Orgullo de equipo.</p><h1>Detrás de cada<br>conexión,<br><em>están ustedes.</em></h1><p class="mv-description">Gracias, equipo técnico.</p></div>
+          <div class="mv-trophy" aria-hidden="true"><span>✦</span><div></div></div>
+          <button type="button" class="mv-celebrate cursor-interaction" data-action="applaud">Un aplauso al equipo <span aria-hidden="true">↗</span></button>
+        </section>
+        <section class="mv-scene mv-quiz-scene" data-scene="4" aria-hidden="true" inert>
+          <div class="mv-kicker"><span></span>UN MINUTO PARA CONECTAR</div>
+          <div class="mv-quiz-heading"><span class="mv-overline">Reto de palabras</span><span class="mv-quiz-timer">Respuesta en <strong>7</strong> s</span></div>
+          <h1>Ordena las letras.<br><em>Encuentra la conexión.</em></h1>
+          <p class="mv-quiz-clue" aria-label="Letras: O, P, I, Q, E, U">O · P · I · Q · E · U</p>
+          <div class="mv-quiz-options" role="group" aria-label="Opciones del reto de demostración">
+            <button class="cursor-interaction" type="button" data-answer="0" aria-pressed="false"><span>A</span><strong>Equipo</strong><i class="mv-answer-mark" aria-hidden="true"></i></button>
+            <button class="cursor-interaction" type="button" data-answer="1" aria-pressed="false"><span>B</span><strong>Empleo</strong><i class="mv-answer-mark" aria-hidden="true"></i></button>
+          </div>
+          <p class="mv-quiz-result" role="status">Piensa tu respuesta. Se revelará automáticamente.</p>
+        </section>
+        <div class="mv-air" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="mv-burst" aria-hidden="true"></div>
+        <div class="mv-auto-note" aria-hidden="true"><span></span><strong>SOMOS EQUIPO</strong></div>
+        <div class="mv-slide-track" aria-hidden="true"><span><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span></div>
+      </main>
+      <aside class="mv-sidebar" aria-label="Módulos informativos">
+        <section class="mv-weather" data-module="weather" aria-label="Ejemplo de módulo del clima; no son datos meteorológicos en vivo"><div class="mv-section-label"><span>JAUJA</span><small>EJEMPLO</small></div><div class="mv-weather-main"><span class="pilot-weather-icon" aria-hidden="true">☀</span><strong>18°</strong><div>Parcialmente<br>nublado</div></div><p>Clima de muestra</p></section>
+        <section class="mv-birthdays" data-module="birthdays"><div class="mv-section-label"><span>CELEBRAMOS CONTIGO</span><span aria-hidden="true">✦</span></div><h2>Cumpleaños</h2><div class="mv-birthday-row mv-today"><span>VR</span><div><strong>Valeria Rojas</strong><small>Atención al cliente</small></div><em>HOY</em></div><div class="mv-birthday-row"><span>DM</span><div><strong>Diego Mendoza</strong><small>Operaciones</small></div><em>07 OCT</em></div><div class="mv-birthday-row"><span>AT</span><div><strong>Ana Torres</strong><small>Administración</small></div><em>11 OCT</em></div><p>Cada persona hace la diferencia.</p></section>
+      </aside>
+    </div>
+    <div class="mv-bottom-modules">
+      <section class="mv-next-event" data-module="event"><div class="mv-date-box"><small>OCT</small><strong>08</strong></div><div class="mv-event-body"><span class="mv-section-label">PRÓXIMO ENCUENTRO</span><h2>Aprendemos juntos</h2><p>9:00 a. m. · Sala de capacitación</p><span class="mv-countdown">Jueves 08 de octubre</span></div></section>
+      <section class="mv-qr-panel" data-module="qr"><img src="{% static 'pilot/assets/qr-telecable.png' %}" alt="Código QR que abre https://telecable.pe/"><div><span class="mv-section-label">DESDE TU CELULAR</span><h2>Conoce Telecable</h2><p>Escanea y visítanos.</p><a href="https://telecable.pe/" target="_blank" rel="noopener noreferrer">telecable.pe ↗</a></div></section>
+      <div class="mv-music-strip">
+      <div class="mv-album" aria-hidden="true"><span>t</span><i></i></div>
+      <div class="mv-track-info"><span class="mv-now-label">MÚSICA DE FONDO · EN PAUSA</span><strong class="mv-track-title">Conexiones</strong><small class="mv-track-subtitle">Demo instrumental · lista para escuchar</small></div>
+      <div class="mv-spectrum" aria-hidden="true"></div>
+      <span class="mv-music-message">El sonido de<br><strong>nuestro equipo.</strong></span>
+      </div>
+    </div>
+    <footer class="mv-footer"><span class="mv-ticker-label">TELECABLE INFORMA</span><span class="mv-ticker-message">Esta semana aprendemos juntos: taller de atención al cliente.</span><span>PILOTO · DATOS DE EJEMPLO</span></footer>
+    <section class="mvp-overlay" aria-label="Video de la lista" hidden>
+      <video class="mvp-player" playsinline controls preload="metadata" aria-label="Video de la lista"></video>
+      <div class="mvp-player-bar"><span class="mvp-player-title">Videos del equipo</span><button class="cursor-interaction" type="button" data-action="video-return">Volver al muro</button></div>
+      <div class="mvp-retry" hidden><p>El navegador necesita que inicies la reproducción.</p><button class="cursor-interaction" type="button" data-action="video-retry">Reproducir video</button></div>
+    </section>
+  </section>
+  </div>
+  <section class="mv-preview-controls" aria-label="Controles de la vista previa">
+    <div class="mv-preview-top"><span class="mv-preview-label">PILOTO · CONTENIDO DE EJEMPLO · AJUSTES DE ESTA SESIÓN</span><div class="mv-scene-controls"><span class="mv-current-scene">Nuestro equipo · 1/5</span><button class="cursor-interaction" type="button" data-action="prev" aria-label="Escena anterior">←</button><button class="cursor-interaction" type="button" data-action="rotation" aria-pressed="false">Pausar animación</button><button class="cursor-interaction" type="button" data-action="next" aria-label="Escena siguiente">→</button><button class="cursor-interaction" type="button" data-action="quiz">Ver reto</button></div></div>
+    <section class="mvp-panel" aria-label="Lista de videos automáticos">
+      <div class="mvp-panel-header"><div><span class="mv-section-label">PROGRAMACIÓN DE VIDEOS</span><h2>Tu lista, en automático.</h2></div><label class="mvp-enabled"><input id="mvp-enabled" type="checkbox" checked> Activar lista</label></div>
+      <div class="mvp-options"><label for="mvp-interval">Tiempo de muro entre turnos<select id="mvp-interval"><option value="30000">30 segundos · prueba rápida</option><option value="300000">5 minutos</option><option value="600000">10 minutos</option><option value="900000" selected>15 minutos</option></select></label><label for="mvp-mode">Videos por turno<select id="mvp-mode"><option value="one">Un video</option><option value="all" selected>Toda la lista</option></select></label><div class="mvp-add"><label class="mv-file-label cursor-interaction" for="mvp-files">Añadir videos<input id="mvp-files" type="file" accept="video/mp4,video/webm,.mp4,.webm" multiple></label></div></div>
+      <ol class="mvp-list" aria-label="Orden de reproducción"></ol>
+      <div class="mvp-actions"><button class="mv-play cursor-interaction" type="button" data-action="video-test">Probar ahora</button><button class="cursor-interaction" type="button" data-action="video-clear">Vaciar lista</button><span class="mvp-schedule">Próximo turno en 15:00</span></div>
+      <p class="mvp-status" role="status">Dos videos de ejemplo. Puedes reemplazarlos por los tuyos.</p>
+      <p class="mvp-local-note">Los videos de ejemplo están incluidos. Tus archivos añadidos solo existen en este navegador y se pierden al recargar; todavía no hay administración central.</p>
+      <script type="application/json" id="mvp-demo-data">[]</script>
+    </section>
+    <div class="mv-audio-controls"><button class="mv-play cursor-interaction" type="button" data-action="play">Escuchar demo</button><button class="cursor-interaction" type="button" data-action="track-next" disabled>Siguiente pista</button><label class="mv-volume-label" for="mv-volume">Volumen <output for="mv-volume">25%</output><input id="mv-volume" class="cursor-interaction" type="range" min="0" max="70" step="1" value="25" aria-label="Volumen de la música"></label><label class="mv-file-label cursor-interaction" for="mv-files">Añadir mis canciones<input id="mv-files" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" multiple></label><button class="cursor-interaction" type="button" data-action="demo" hidden>Volver a la demo</button></div>
+    <p class="mv-audio-status" role="status">Puedes escuchar la demo o elegir archivos de audio de tu equipo. No se suben al servidor.</p>
+    <audio class="mv-audio" preload="metadata"></audio>
+    <details class="mv-editor"><summary class="cursor-interaction">Personalizar esta sesión</summary><form class="mv-editor-form"><div class="mv-editor-fields"><label for="mv-title">Titular principal<input id="mv-title" type="text" maxlength="100" value="La conexión más importante somos nosotros."></label><label for="mv-subtitle">Texto de apoyo<input id="mv-subtitle" type="text" maxlength="120" value="Historias y momentos que nos acercan."></label><label for="mv-media">Foto o video propio<input id="mv-media" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm"></label><label for="mv-duration">Tiempo por imagen<select id="mv-duration"><option value="12000">12 segundos</option><option value="16000" selected>16 segundos</option><option value="24000">24 segundos</option></select></label></div><fieldset class="mv-module-options"><legend>Módulos visibles</legend><label><input type="checkbox" data-toggle="weather" checked> Clima</label><label><input type="checkbox" data-toggle="birthdays" checked> Cumpleaños</label><label><input type="checkbox" data-toggle="event" checked> Próximo evento</label><label><input type="checkbox" data-toggle="qr" checked> Código QR</label></fieldset><div class="mv-editor-actions"><button type="submit" class="mv-play cursor-interaction">Aplicar a la vista previa</button><button type="button" class="cursor-interaction" data-action="reset-media">Restaurar imagen de muestra</button><span class="mv-editor-status" role="status">Cambios locales de demostración.</span></div></form></details>
+  </section>
+</div>
+</body>
+</html>

@@ -4,36 +4,29 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-
 # Entornos virtuales
 .venv/
 venv/
 env/
-
-# Variables de entorno y configuracion local
+# Configuración privada
 .env
 .env.*
 !.env.example
-
-# Django: datos y archivos generados
+.dev-secret
+# Datos y archivos generados
 *.sqlite3
 *.sqlite3-journal
 media/
 staticfiles/
 *.log
-
-# Pruebas y herramientas
+# Herramientas
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 .coverage.*
 htmlcov/
-
-# Dependencias de frontend
 node_modules/
-
-# Editores y sistema operativo
 .idea/
 .vscode/
 .DS_Store

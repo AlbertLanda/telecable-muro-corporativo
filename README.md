@@ -1,64 +1,93 @@
 # Telecable · Muro corporativo
 
-Piloto del muro aprobado: escenas corporativas, cumpleaños y eventos de ejemplo, reloj de Lima, animaciones, música instrumental de demostración y una lista automática de videos.
+Panel central en **Django 5.2 / Python 3.11**, preparado para **PostgreSQL**, con archivos persistentes y publicación para las TVs. Conserva el diseño del piloto aprobado.
 
-## Ejecutar en Windows
+## Iniciar en Windows
 
-Desde la carpeta del repositorio, con Python 3.11 instalado:
+Desde la carpeta del repositorio, detén primero el servidor estático (`Ctrl+C`) si sigue usando el puerto 8000.
 
 ```powershell
-py -3.11 -m http.server 8000 --bind 127.0.0.1 --directory piloto
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py setup_wall
+.\.venv\Scripts\python.exe manage.py createsuperuser
+.\.venv\Scripts\python.exe manage.py runserver
 ```
 
-Abre **http://localhost:8000/** en el navegador. No requiere instalar paquetes. Para detener el servidor, pulsa `Ctrl+C`.
+No hace falta activar el entorno. `createsuperuser` pide la cuenta de TI; la contraseña no aparece mientras escribes. Copia `.env.example` solo en la instalación inicial; conserva `.env` al actualizar.
 
-- **Abrir modo TV:** oculta los ajustes y adapta el muro a la pantalla en formato 16:9.
-- **Probar ahora:** reproduce los dos videos completos y regresa al muro.
-- **Prueba rápida · 30 s:** reduce a 30 segundos el tiempo de muro entre turnos. Por defecto son 15 minutos.
-- En modo TV, **OK / Enter** muestra las opciones y **Esc** vuelve a los ajustes. También puedes hacer clic sobre el muro para mostrar las opciones. Las teclas que el navegador o la TV intercepten pueden funcionar de otra manera.
-- **Activar música:** inicia la demo instrumental con una interacción del usuario.
+Abre **http://127.0.0.1:8000/panel/** e ingresa con la cuenta de TI. La prueba local usa SQLite y guarda los archivos en `media/`. El despliegue exige PostgreSQL y almacenamiento persistente. En Linux/macOS, usa `python3 -m venv .venv` y `.venv/bin/python`.
 
-En Linux/macOS usa `python3` en lugar de `py -3.11`.
+## Cuenta del jefe de Imagen
 
-## URLs del piloto
+Si una versión anterior muestra **403 — Origin checking failed - null** al iniciar sesión, actualiza `feature/panel-publicacion`, reinicia Django y abre de nuevo la página de acceso desde su enlace; no reenvíes el formulario anterior. Se corrigió `SECURE_REFERRER_POLICY` a `same-origin` para que los formularios conserven el origen requerido por CSRF. No hace falta volver a crear usuarios ni cambiar permisos.
 
-| Ruta | Uso |
-| --- | --- |
-| `/` | Vista previa y ajustes de esta sesión |
-| `/?tv=1` | Modo TV automático, videos cada 15 minutos de muro |
-| `/?tv=1&prueba=1` | Modo TV con turnos cada 30 segundos para verificar el ciclo |
+En otra terminal del mismo proyecto:
 
-Los parámetros no guardan una configuración central: al recargar se reinicia la lista de ejemplo. `tv=1` inicia el diseño para pantalla sin pedir pantalla completa nativa automáticamente al abrir; esa solicitud puede requerir una pulsación con el control.
+```powershell
+.\.venv\Scripts\python.exe manage.py create_editor jefeimagen
+```
 
-## Qué incluye y qué falta
+El comando solicita una contraseña propia y asigna **Editores de Imagen**. Puede subir archivos, editar, previsualizar, publicar y recuperar versiones. No puede administrar usuarios ni los enlaces de las TVs. Alternativamente, TI crea el usuario en `/admin/` y asigna ese grupo sin marcarlo como personal administrativo.
 
-Incluye dos clips MP4 originales sin audio, de seis segundos cada uno. Las imágenes y videos incluidos se sirven desde `piloto/assets/`, por lo que también estarán disponibles en la TV al publicar esa carpeta.
+## Primera publicación
 
-Los archivos añadidos con **Añadir videos** o **Añadir mis canciones**, el orden de la lista y los cambios de contenido solo duran en ese navegador hasta recargar. **No se suben ni se sincronizan con otras pantallas.** Los nombres, cumpleaños, eventos y clima son ejemplos; el reloj sí usa la fecha y hora actuales de Lima. Spotify no está conectado.
+1. **Biblioteca:** sube imágenes, MP4 o música MP3/WAV. Permanecen guardados en el servidor.
+2. **Contenido y ajustes:** añade anuncios, mensajes, videos, eventos, reconocimientos y cumpleaños; define orden, duración y fechas de inicio/retiro en hora de Lima.
+3. Guarda cada formulario y pulsa **Ver borrador**. Usa el mismo reproductor que la TV y respeta la programación actual.
+4. Pulsa **Publicar borrador guardado**: se crea una versión independiente del borrador.
+5. Con la cuenta de TI entra a **Pantallas**, crea una y abre su enlace en otra pestaña.
+6. Guarda otro borrador: la pantalla conserva lo publicado. Publica de nuevo: consulta cada 30 segundos y actualiza en la siguiente transición, dejando terminar el video actual.
 
-El bloqueo de suspensión se solicita solo si el navegador ofrece Screen Wake Lock y permite usarlo. La pantalla completa nativa de video se intenta cuando corresponde, con alternativa dentro de la página si el navegador lo rechaza. **Ninguna de esas solicitudes confirma que el protector de la TV esté desactivado.** Ver el [protocolo de prueba](docs/prueba-tv.md).
+Los videos empiezan silenciados para favorecer autoplay. **OK / Enter → Activar sonido** habilita el sonido y la música seleccionada. El navegador decide si permite reproducción y pantalla completa; no se recarga la página para actualizar.
 
-Este piloto estático todavía no está publicado desde este repositorio. La fase siguiente contempla administración central con **Django, Python 3.11 y PostgreSQL**. Azure es una opción de alojamiento; no se necesita para ejecutar esta prueba local.
+Los cumpleaños se repiten por día y mes; el 29 de febrero se celebra cuando existe esa fecha. Se oculta el clima de ejemplo porque todavía no hay integración meteorológica. Spotify no está conectado.
 
-## Estructura
+## Versiones y acceso
 
-- `piloto/index.html`: contenido y controles del piloto.
-- `piloto/wall.css`, `piloto/wall.js`: diseño y reproducción del muro.
-- `piloto/tv.css`, `piloto/tv.js`: adaptación a pantalla, controles y solicitudes de pantalla activa.
-- `piloto/assets/`: logo, foto ilustrativa, QR y videos de ejemplo.
-- `docs/prueba-tv.md`: publicación y validación en equipo real.
-- `tests/`: comprobaciones de archivos y comportamiento con DOM/medios simulados.
+- Los cambios guardados permanecen en borrador hasta publicar.
+- El historial conserva contenido y referencias a los archivos originales.
+- **Recuperar y publicar** crea una nueva versión desde una anterior sin cambiar el borrador. Mantiene sus fechas: los anuncios vencidos no reaparecen.
+- Para reemplazar un archivo, sube uno nuevo y selecciónalo en el borrador. La eliminación definitiva de medios no está implementada, para conservar el historial.
+- TI crea un enlace aleatorio por TV y puede renovarlo o deshabilitarlo. Es una credencial de visualización; no permite editar ni leer archivos nunca publicados en ese muro.
+- Un guardado se rechaza si otro editor cambió el borrador desde que se abrió el formulario.
 
-## Verificación para desarrollo
+## Despliegue
+
+El panel necesita Django y una base de datos compartida. Publicar solo `piloto/` **no publica el panel**. Sigue [la guía de despliegue](docs/panel-y-despliegue.md).
+
+Para Azure, sigue [la preparación y despliegue a App Service](docs/azure.md). Incluye un script de carga del código, arranque automático, comprobación de PostgreSQL/archivos y códigos de incidencia para revisar errores. Requiere un recurso de destino y acceso a Azure; subir código a esta rama no despliega automáticamente.
+
+Este backend aún no se ha desplegado ni se han creado cuentas reales. Para TVs sin PC dedicada, debe alojarse en un servidor accesible. Azure es una opción. El panel no modifica la política de suspensión de la Miray: sigue [la prueba física del piloto](docs/prueba-tv.md).
+
+## Pruebas
+
+```powershell
+.\.venv\Scripts\python.exe manage.py test wall
+.\.venv\Scripts\python.exe manage.py test muro
+.\.venv\Scripts\python.exe manage.py check
+.\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
+```
+
+Con Node y Python disponibles (en Windows configura `$env:PYTHON = "python"` si ese ejecutable corresponde a Python 3):
 
 ```bash
 python3 tests/validate.py
-node --check piloto/wall.js
-node --check piloto/tv.js
 node tests/playback.cjs
 node tests/tv-shell.cjs
+node tests/managed-sync.cjs
 ```
 
-Node se usa únicamente para estas comprobaciones. En Windows, si `python3` no está disponible, ejecuta `py -3.11 tests/validate.py` y establece `$env:PYTHON = "python"` para la prueba de reproducción cuando `python` corresponda a tu instalación de Python 3.
+Las pruebas cubren permisos, CSRF, cargas, borradores/publicaciones, recuperación, fechas, medios y HTTP Range. JavaScript usa DOM/medios simulados para comprobar transiciones y actualización. No sustituyen la inspección visual ni la prueba en TV. Esta entrega se verificó con Python 3.12 y SQLite; falta comprobar el entorno de destino con Python 3.11 y PostgreSQL.
 
-Las pruebas con DOM y medios simulados validan la lógica; no sustituyen la inspección visual en navegador ni la decodificación en una TV. Usar ramas `feature/*` o `fix/*` para cambios posteriores.
+## Estructura
+
+- `muro/`: configuración Django y base de datos.
+- `wall/`: modelos, migraciones, permisos, panel y API de pantallas.
+- `piloto/`: reproductor compartido, diseño y recursos.
+- `docs/`: puesta en marcha y pruebas en TV.
+- `tests/`: pruebas JavaScript y recursos.
+
+El piloto estático original sigue disponible con `python -m http.server 8001 --directory piloto`, con ajustes locales de demostración separados de las publicaciones centrales.

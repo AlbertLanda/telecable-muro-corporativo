@@ -1,0 +1,51 @@
+name: Python 3.11 y PostgreSQL
+on:
+  push:
+    branches: [main, 'feature/**', 'fix/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: muro_ci
+          POSTGRES_USER: muro_ci
+          POSTGRES_PASSWORD: muro_ci_ephemeral
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U muro_ci -d muro_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DJANGO_DEBUG: '1'
+      DJANGO_USE_SQLITE: '0'
+      POSTGRES_DB: muro_ci
+      POSTGRES_USER: muro_ci
+      POSTGRES_PASSWORD: muro_ci_ephemeral
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: '5432'
+      POSTGRES_SSLMODE: prefer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python manage.py test wall muro
+      - run: python manage.py makemigrations --check --dry-run
+      - name: Production startup, database and static assets
+        run: python scripts/release.py
+        env:
+          DJANGO_DEBUG: '0'
+          DJANGO_SECRET_KEY: ci-only-no-production-use-734810521-telecable-muro-test-key
+          DJANGO_ALLOWED_HOSTS: localhost
+          DJANGO_MEDIA_ROOT: /tmp/muro-ci-media
+      - run: python tests/validate.py
+      - run: node tests/playback.cjs && node tests/tv-shell.cjs && node tests/managed-sync.cjs
+      - run: python scripts/package_release.py
+      - run: python tests/database_bootstrap.py
