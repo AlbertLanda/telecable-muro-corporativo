@@ -8,6 +8,23 @@ Las fechas de inicio/retiro y los cumpleaños se resuelven al consultar el manif
 
 El editor permite cambiar contenido, orden, duración y módulos disponibles dentro del diseño aprobado. No es un editor libre de posiciones tipo Canva.
 
+## Panel guiado y actualización automática
+
+El panel distingue cuatro pasos: **Biblioteca → Preparar contenido → Revisar borrador → Publicar**. Subir un archivo no lo añade automáticamente a la programación. Las acciones «Crear anuncio» y «Usar en cumpleaños» de Biblioteca abren el formulario con el archivo seleccionado, sin guardar ni publicar nada todavía.
+
+Los formularios agrupan los datos por tarea y explican el resultado de cada campo. Al elegir un formato se muestran los campos correspondientes, el archivo seleccionado y un resumen de su programación. Este resumen orienta la edición; la vista del reproductor muestra el resultado final. Las fotos de anuncios llenan su espacio y pueden recortarse; las fotos de cumpleaños se encajan completas.
+
+- **Ver borrador:** muestra los cambios guardados que están vigentes hoy. Consulta cada 30 segundos y se actualiza al terminar la escena o video. Un anuncio con fecha futura espera hasta su inicio.
+- **Ver tarjeta:** muestra el cumpleaños seleccionado independientemente de su fecha. También recoge los cambios guardados cada 30 segundos.
+- **Ver publicación actual:** permite a Imagen revisar la versión publicada, con actualización automática y sin compartir las credenciales de las TV. Guardar un borrador no cambia esta vista.
+- **Enlaces de TV:** siguen consultando cada 30 segundos, incluidas las fechas de programación y los cambios de día en Lima. Las respuestas sin cambios usan ETag y HTTP 304. No se recarga la página ni se corta el video actual.
+
+La etiqueta del borrador compara su contenido guardado con la publicación actual, incluso después de recuperar una versión anterior. El estado indica qué está disponible para las pantallas; no es una confirmación de recepción de cada TV. El panel de edición no se recarga automáticamente y avisa al salir con cambios sin guardar. En Ajustes, bloquea Publicar mientras haya cambios locales pendientes de guardar.
+
+Si caduca la sesión de una vista previa, el reproductor se detiene y pide volver al panel. Si el borrador tiene un archivo inválido o se pierde la conexión, conserva la última vista válida y muestra el estado en las opciones del reproductor (OK / Enter). Esto no constituye reproducción offline completa.
+
+Esta mejora no añade tablas ni servicios de Azure. Después de desplegar, recargar una vez las pestañas abiertas para cargar el código nuevo. A partir de entonces, las nuevas publicaciones y cambios guardados de las vistas previas se reciben sin recargas manuales.
+
 ## Cumpleaños con foto y dedicatoria
 
 1. En Biblioteca, cargar una fotografía individual como Imagen. Es opcional; sin foto se muestran las iniciales. La foto se encaja completa en su marco, sin recortarla.

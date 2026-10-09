@@ -47,5 +47,6 @@ jobs:
           DJANGO_MEDIA_ROOT: /tmp/muro-ci-media
       - run: python tests/validate.py
       - run: node tests/playback.cjs && node tests/tv-shell.cjs && node tests/managed-sync.cjs
+      - run: node --check wall/static/panel/panel.js
       - run: python scripts/package_release.py
       - run: python tests/database_bootstrap.py

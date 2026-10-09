@@ -1,8 +1,28 @@
 {% load static %}<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{% block title %}Muro · Telecable{% endblock %}</title><link rel="stylesheet" href="{% static 'panel/panel.css' %}"></head>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}Panel de comunicación · Telecable{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'panel/panel.css' %}">
+  <script defer src="{% static 'panel/panel.js' %}"></script>
+</head>
 <body>
-<header class="app-header"><a class="brand" href="{% url 'dashboard' %}"><img src="{% static 'pilot/assets/logo-telecable.png' %}" alt="Telecable"><span>Muro corporativo</span></a>{% if user.is_authenticated %}<div class="user-menu"><span>{{ user.get_username }}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet">Cerrar sesión</button></form></div>{% endif %}</header>
-{% if user.is_authenticated %}<nav class="app-nav" aria-label="Navegación del panel"><a href="{% url 'dashboard' %}">Contenido y ajustes</a><a href="{% url 'library' %}">Biblioteca</a><a href="{% url 'history' %}">Publicaciones</a>{% if perms.wall.manage_displays %}<a href="{% url 'displays' %}">Pantallas</a>{% endif %}{% if user.is_superuser %}<a href="{% url 'admin:index' %}">Usuarios · TI</a>{% endif %}</nav>{% endif %}
-<main class="app-main">{% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
-<footer class="app-footer">Telecable · Comunicación interna <span>Horarios de Lima</span></footer>
+<a class="skip-link" href="#main">Ir al contenido</a>
+<header class="app-header">
+  <a class="brand" href="{% url 'dashboard' %}"><img src="{% static 'pilot/assets/logo-telecable.png' %}" alt="Telecable"><span>Comunicación interna<strong>Muro corporativo</strong></span></a>
+  {% if user.is_authenticated %}<div class="user-menu"><span class="user-avatar" aria-hidden="true">{{ user.get_username|first|upper }}</span><span><strong>{{ user.get_username }}</strong><small>{% if user.is_superuser %}Administración · TI{% else %}Equipo de contenidos{% endif %}</small></span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet">Salir</button></form></div>{% endif %}
+</header>
+{% if user.is_authenticated %}
+<nav class="app-nav" aria-label="Navegación del panel">
+  <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'content_edit' or request.resolver_match.url_name == 'content_new' or request.resolver_match.url_name == 'birthday_edit' or request.resolver_match.url_name == 'birthday_new' %}aria-current="page"{% endif %}>Contenido y ajustes</a>
+  <a href="{% url 'library' %}" {% if request.resolver_match.url_name == 'library' %}aria-current="page"{% endif %}>Biblioteca</a>
+  <a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}aria-current="page"{% endif %}>Publicaciones</a>
+  {% if perms.wall.manage_displays %}<a href="{% url 'displays' %}" {% if request.resolver_match.url_name == 'displays' %}aria-current="page"{% endif %}>Pantallas</a>{% endif %}
+</nav>
+{% endif %}
+<main class="app-main" id="main">
+  {% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="app-footer"><span>Telecable · Comunicación interna</span><span>Fechas y horarios de Lima</span></footer>
 </body></html>

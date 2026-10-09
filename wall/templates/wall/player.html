@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <meta name="description" content="Piloto del muro corporativo de Telecable con datos y videos de ejemplo.">
+  <meta name="description" content="Muro corporativo de Telecable con actualización automática de contenido.">
   <title>Telecable · Muro corporativo</title>
   <link rel="stylesheet" href="{% static 'pilot/wall.css' %}">
   <link rel="stylesheet" href="{% static 'pilot/tv.css' %}">
@@ -18,12 +18,12 @@
 <body class="managed">
 {{ bootstrap|json_script:"muro-bootstrap" }}
   <header class="pilot-toolbar">
-    <div><strong>Muro corporativo</strong><p>Telecable · Piloto para pantallas</p></div>
+    <div><strong>Muro corporativo</strong><p>Telecable · Comunicación interna</p></div>
     <div class="pilot-actions">
       <button id="pilot-enter" type="button">Abrir modo TV</button>
       <button id="pilot-quick" type="button">Prueba rápida · 30 s</button>
     </div>
-    <p class="pilot-help">Modo TV se ajusta a la pantalla. OK / Enter muestra sus opciones. Los ajustes y archivos propios son locales a esta sesión.</p>
+    <p class="pilot-help">Modo TV se ajusta a la pantalla. OK / Enter muestra sus opciones. El contenido guardado se consulta automáticamente cada 30 segundos.</p>
     <p id="pilot-wake-status" role="status">Protección de pantalla: pendiente de comprobar en la TV.</p>
   </header>
   <nav id="pilot-tv-tools" aria-label="Opciones de la pantalla" hidden>

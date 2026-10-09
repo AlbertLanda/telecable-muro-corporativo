@@ -1,1 +1,15 @@
-{% extends 'wall/base.html' %}{% block content %}<section class="page-intro"><div><span class="eyebrow">BORRADOR</span><h1>{{ title }}</h1><p>{{ caption }}</p></div><a href="{% url 'dashboard' %}">Volver al contenido</a></section><section class="panel"><form method="post">{% csrf_token %}{% include 'wall/fields.html' %}<button class="primary">Guardar en borrador</button></form></section>{% endblock %}
+{% extends 'wall/base.html' %}{% block content %}
+<section class="page-intro"><div><a class="back-link" href="{% url 'dashboard' %}">← Contenido y ajustes</a><h1>{% if entry.pk %}Editar{% else %}Nuevo{% endif %} {% if is_birthday %}cumpleaños{% else %}contenido{% endif %}</h1><p>{{ caption }}</p></div><span class="badge warning">Preparando el borrador</span></section>
+<div class="editor-layout">
+  <section class="panel"><form method="post" data-edit-form data-editor="{% if is_birthday %}birthday{% else %}content{% endif %}">{% csrf_token %}<p class="form-legend">Los campos con * son obligatorios.</p>{% include 'wall/fields.html' %}<div class="form-actions"><button class="primary">Guardar en borrador</button><a href="{% url 'dashboard' %}">Volver al contenido</a></div><p class="save-hint">Después de guardar, revisa el resultado y publica desde Contenido y ajustes.</p></form></section>
+  <aside class="editor-guide" aria-label="Guía de edición">
+    <section class="panel"><span class="eyebrow">ASÍ SE UTILIZA</span><h2>{% if is_birthday %}Una tarjeta para su día{% else %}Tu mensaje en el muro{% endif %}</h2><p id="editor-explanation">{% if is_birthday %}La foto acompaña al nombre, área y dedicatoria. La tarjeta completa aparece cada año en la fecha registrada, después de publicar.{% else %}Elige el tipo de contenido para ver cómo se presentará. Las imágenes y videos se seleccionan desde Biblioteca.{% endif %}</p>
+      <div class="asset-preview" id="asset-preview" hidden><img id="selected-image" alt="Imagen seleccionada" hidden><video id="selected-video" controls preload="metadata" hidden></video><span id="selected-empty" class="preview-placeholder">Sin imagen seleccionada</span><strong id="selected-title"></strong><p id="selected-copy"></p></div>
+      <p id="editor-result" class="result-note" role="status"></p>
+      <a href="{% url 'library' %}" target="_blank" rel="noopener">Subir otro archivo a Biblioteca ↗</a><small class="guide-note">Si subes un archivo en otra pestaña, guarda lo que estás editando y vuelve a abrir este formulario para seleccionarlo.</small>
+    </section>
+    <section class="panel guide-secondary"><h2>Antes de publicar</h2><ol class="checklist"><li>Guarda este formulario en el borrador.</li><li>{% if is_birthday %}Abre «Ver tarjeta» en la lista de cumpleaños, aunque todavía no sea su fecha.{% else %}Abre «Ver borrador». Solo muestra contenidos cuya programación esté vigente hoy.{% endif %}</li><li>Publica el borrador guardado. Las TV consultan cambios cada 30 segundos y esperan a que termine la escena o video.</li></ol>{% if is_birthday and entry.pk %}<a class="button" href="{% url 'birthday_preview' entry.pk %}" target="_blank" rel="noopener">Ver tarjeta guardada ↗</a>{% endif %}</section>
+  </aside>
+</div>
+{{ asset_choices|json_script:'asset-choices' }}
+{% endblock %}

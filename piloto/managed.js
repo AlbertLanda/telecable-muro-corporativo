@@ -42,12 +42,12 @@
     const eventDate=renderSidebar(data);
     wall.configure({config:data.config,eventDate:eventDate,music_url:data.music_url,videos:data.contents.filter(c=>c.kind==='video')});
     text('.mv-channel strong',data.config.name||'Somos Telecable');
-    text('.mv-footer>span:last-child',data.preview?'VISTA PREVIA · SIN PUBLICAR':'#ConectandoOportunidades');
+    text('.mv-footer>span:last-child',data.preview?'BORRADOR · SIN PUBLICAR':'PUBLICADO · V'+data.version);
     plan=data.contents.filter(c=>c.kind!=='video').map(c=>({scene:c.kind==='event'?2:c.kind==='recognition'?3:0,item:c}));
     (data.birthdays||[]).filter(b=>b.is_today).forEach(b=>plan.push({scene:1,item:b}));
     if(!plan.length)plan.push({scene:0,item:{title:data.version===0?'Esperando la primera publicación':data.config.welcome_title,body:data.version===0?'El contenido aparecerá cuando Imagen publique el muro.':data.config.welcome_body,duration:16}});
     if(data.config.quiz_enabled)plan.push({scene:4,item:{duration:16}});
-    status.textContent=data.preview?'Borrador · esta vista no actualiza las TVs.':'Versión '+data.version+' recibida.';
+    status.textContent=data.preview?'Borrador guardado · actualización automática cada 30 s. Esta vista no publica en las TV.':'Versión '+data.version+' aplicada · consulta automática cada 30 s.';
   }
   function next(){
     if(pending){const update=pending;pending=null;apply(update);}
@@ -89,9 +89,9 @@
     busy=true;
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
     try{
-      const response=await fetch(boot.poll_url,{cache:'no-store',credentials:'same-origin',signal:controller.signal});
-      if(response.status===403||response.status===404){
-        status.textContent='El enlace de esta pantalla dejó de estar habilitado. Solicita uno nuevo a TI.';
+      const response=await fetch(boot.poll_url,{cache:'no-store',credentials:'same-origin',signal:controller.signal,headers:{'If-None-Match':'"'+current.signature+'"'}});
+      if(response.status===401||response.status===403||response.status===404||response.redirected){
+        status.textContent=boot.poll_url.indexOf('/panel/')===0?'Esta vista ya no está disponible. Vuelve al panel e inicia sesión para abrirla de nuevo.':'El enlace de esta pantalla dejó de estar habilitado. Solicita uno nuevo a TI.';
         closed=true;
         wall.stop();
         const exit=document.exitFullscreen||document.webkitExitFullscreen;
@@ -100,14 +100,18 @@
         document.getElementById('pilot-tv-tools').hidden=false;
         return;
       }
+      if(response.status===304){pending=null;status.textContent='Conectado · '+(current.preview?'borrador guardado':'versión '+current.version)+' · revisión cada 30 s.';return;}
+      if(response.status===422){status.textContent='El borrador tiene un archivo pendiente de corregir. Revísalo en el panel; se conserva la última vista válida.';return;}
       if(!response.ok)throw new Error('manifest');
       const update=await response.json();
       if(update.signature!==current.signature){pending=update;status.textContent='Actualización recibida; se aplicará en la siguiente transición.';}
-      else{pending=null;status.textContent='Conectado · versión '+current.version+'.';}
+      else{pending=null;status.textContent='Conectado · '+(current.preview?'borrador guardado':'versión '+current.version)+' · revisión cada 30 s.';}
     }catch(error){status.textContent='Sin conexión con el servidor. Se conserva la versión recibida; los archivos nuevos requieren conexión.';}
     finally{busy=false;clearTimeout(timeout);}
   }
   const timer=setInterval(poll,30000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();});
+  window.addEventListener('online',poll);
+  window.addEventListener('pageshow',event=>{if(event.persisted)poll();});
   window.addEventListener('pagehide',event=>{if(!event.persisted){closed=true;clearInterval(timer);}});
 })();

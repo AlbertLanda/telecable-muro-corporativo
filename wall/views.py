@@ -39,7 +39,22 @@ def dashboard(request):
                     return redirect('dashboard')
                 except ValidationError as error:
                     form.add_error(None,error)
-    return render(request,'wall/dashboard.html',{'wall':wall,'form':form,'contents':wall.contents.all(),'birthdays':wall.birthdays.all()})
+    # Compare the saved draft, including after restoring a historical publication.
+    saved_wall = get_wall()
+    publication = saved_wall.current_publication
+    try:
+        data,_ = snapshot(saved_wall)
+        draft_matches_live = bool(publication and data == publication.snapshot)
+        draft_error = ''
+    except ValidationError as error:
+        draft_matches_live, draft_error = False, ' '.join(error.messages)
+    return render(request,'wall/dashboard.html',{
+        'wall':saved_wall,'form':form,'contents':saved_wall.contents.select_related('asset'),
+        'birthdays':saved_wall.birthdays.select_related('photo'),
+        'content_count':saved_wall.contents.filter(enabled=True).count(),
+        'birthday_count':saved_wall.birthdays.filter(enabled=True).count(),
+        'draft_matches_live':draft_matches_live,'draft_error':draft_error,
+    })
 
 
 @access()
@@ -56,26 +71,57 @@ def birthday_edit(request, pk=None):
 @require_safe
 @never_cache
 def birthday_preview(request, pk):
-    wall = get_wall()
-    birthday = get_object_or_404(Birthday.objects.select_related('photo'),pk=pk,wall=wall)
     try:
-        person = birthday_snapshot(birthday)
+        initial = birthday_preview_data(pk)
     except ValidationError as error:
         messages.error(request,' '.join(error.messages))
         return redirect('birthday_edit',pk=pk)
+    return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':reverse('birthday_preview_manifest',args=[pk])}})
+
+
+def birthday_preview_data(pk):
+    wall = get_wall()
+    birthday = get_object_or_404(Birthday.objects.select_related('photo'),pk=pk,wall=wall)
+    person = birthday_snapshot(birthday)
     data = {'config':{'name':wall.name,'ticker':'Celebramos contigo.',
                      'interval_minutes':15,'videos_per_turn':'all','quiz_enabled':False,'qr_enabled':False},
             'contents':[],'birthdays':[person],'music_id':None}
     initial = manifest(data,f'draft-{wall.revision}',lambda asset:reverse('editor_media',args=[asset]),preview=True)
     # Preview this card regardless of the date; never modify or publish the record.
     initial['birthdays'][0].update(is_today=True,days_until=0)
-    return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':None}})
+    return initial
+
+
+@access()
+@require_safe
+@never_cache
+def birthday_preview_manifest(request, pk):
+    try:
+        return manifest_response(request,birthday_preview_data(pk))
+    except ValidationError as error:
+        return JsonResponse({'error':' '.join(error.messages)},status=422)
+
+
+def asset_choices():
+    return [{'id':str(asset.pk),'title':asset.title,'kind':asset.kind,
+             'url':reverse('editor_media',args=[asset.pk])} for asset in Asset.objects.all()]
 
 
 def edit_entry(request, model, form_class, title, pk):
     wall = get_wall()
     entry = get_object_or_404(model,pk=pk,wall=wall) if pk else model(wall=wall)
-    form = form_class(instance=entry,initial={'revision':wall.revision})
+    initial = {'revision':wall.revision}
+    # Library shortcuts only preselect an existing, compatible asset; GET never saves.
+    if not pk and request.GET.get('asset'):
+        try:
+            asset = Asset.objects.get(pk=request.GET['asset'])
+        except (Asset.DoesNotExist,ValidationError):
+            asset = None
+        if asset and model is Birthday and asset.kind == 'image':
+            initial['photo'] = asset.pk
+        elif asset and model is Content and asset.kind in ('image','video'):
+            initial.update(asset=asset.pk,kind=asset.kind,title=asset.title)
+    form = form_class(instance=entry,initial=initial)
     if request.method == 'POST':
         with transaction.atomic():
             wall = Wall.objects.select_for_update().get(pk=wall.pk)
@@ -87,11 +133,13 @@ def edit_entry(request, model, form_class, title, pk):
                     form.save()
                     wall.revision += 1
                     wall.save(update_fields=['revision'])
-                    messages.success(request,'Contenido guardado en el borrador.')
+                    messages.success(request,'Guardado en el borrador. Revisa la vista previa y publica para enviarlo a las pantallas.')
                     return redirect('dashboard')
                 except ValidationError as error:
                     form.add_error(None,error)
-    return render(request,'wall/form.html',{'form':form,'title':title,'caption':'Los cambios aparecen en las pantallas cuando publicas. Fechas y horas de Lima.'})
+    return render(request,'wall/form.html',{'form':form,'title':title,'is_birthday':model is Birthday,
+                  'entry':entry,'asset_choices':asset_choices(),
+                  'caption':'Completa los pasos, guarda el borrador y revisa el resultado antes de publicar.'})
 
 
 @access()
@@ -187,12 +235,60 @@ def display_action(request, pk):
 
 
 @access()
+@require_safe
 @never_cache
 def preview(request):
+    try:
+        initial = draft_manifest()
+    except ValidationError as error:
+        messages.error(request,' '.join(error.messages))
+        return redirect('dashboard')
+    return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':reverse('preview_manifest')}})
+
+
+def draft_manifest():
     wall = get_wall()
     data,_ = snapshot(wall)
-    initial = manifest(data,f'draft-{wall.revision}',lambda asset:reverse('editor_media',args=[asset]),preview=True)
-    return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':None}})
+    return manifest(data,f'draft-{wall.revision}',lambda asset:reverse('editor_media',args=[asset]),preview=True)
+
+
+@access()
+@require_safe
+@never_cache
+def preview_manifest(request):
+    try:
+        return manifest_response(request,draft_manifest())
+    except ValidationError as error:
+        return JsonResponse({'error':' '.join(error.messages)},status=422)
+
+
+def editor_published_manifest():
+    publication = get_wall().current_publication
+    if not publication:
+        return {'version':0,'signature':'unpublished','config':{},'contents':[],'birthdays':[],'music_url':None,'preview':False}
+    return manifest(publication.snapshot,publication.number,lambda asset:reverse('editor_media',args=[asset]))
+
+
+@access()
+@require_safe
+@never_cache
+def published_preview(request):
+    return render(request,'wall/player.html',{'bootstrap':{'manifest':editor_published_manifest(),
+                  'poll_url':reverse('published_preview_manifest')}})
+
+
+@access()
+@require_safe
+@never_cache
+def published_preview_manifest(request):
+    return manifest_response(request,editor_published_manifest())
+
+
+def manifest_response(request, data):
+    etag = '"'+data['signature']+'"'
+    response = HttpResponse(status=304) if request.headers.get('If-None-Match') == etag else JsonResponse(data)
+    response['ETag'] = etag
+    return response
 
 
 def active_display(token):
@@ -209,7 +305,7 @@ def tv(request, token):
 @require_safe
 @never_cache
 def tv_manifest(request, token):
-    return JsonResponse(published_manifest(active_display(token)))
+    return manifest_response(request,published_manifest(active_display(token)))
 
 
 @access()

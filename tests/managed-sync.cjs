@@ -56,5 +56,30 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   assert.match(b.q('.mv-active .mv-description').textContent,/Gracias por ser parte/);
   b.advance(16000);assert.equal(b.scene(),'4');
   assert(!b.root.classList.contains('mv-birthday-focus'));
-  console.log('PASS: published rendering, image/event/birthday/recognition plans, pending updates at scene/video boundaries, muted autoplay, offline retention and revoked displays.');
+
+  const p=setup(),draft=structuredClone(initial);
+  draft.preview=true;draft.version='draft-1';draft.signature='draft-1';
+  draft.contents=draft.contents.filter(item=>item.kind!=='video');
+  p.win.MURO_BOOT={manifest:draft,poll_url:'/panel/vista-previa/manifest/'};
+  let mode='unchanged',requestedHeaders;
+  p.run(code,{AbortController,setTimeout,clearTimeout,fetch:async(url,options)=>{
+    requestedHeaders=options.headers;
+    if(mode==='unchanged')return {status:304,ok:false};
+    if(mode==='invalid')return {status:422,ok:false};
+    if(mode==='login')return {status:200,ok:true,redirected:true};
+    return {status:200,ok:true,json:async()=>({...structuredClone(draft),signature:'draft-2',version:'draft-2',contents:[{kind:'message',title:'Borrador actualizado',duration:16}]})};
+  }});
+  p.advance(30000);await tick();
+  assert.equal(requestedHeaders['If-None-Match'],'"draft-1"');
+  assert.match(p.doc.getElementById('managed-status').textContent,/Conectado.*borrador/);
+  mode='changed';p.advance(30000);await tick();
+  assert.equal(p.q('.mv-photo-copy h1').textContent,'Publicación inicial');
+  p.advance(4000);assert.equal(p.q('.mv-photo-copy h1').textContent,'Borrador actualizado');
+  mode='invalid';p.advance(30000);await tick();
+  assert.equal(p.q('.mv-photo-copy h1').textContent,'Borrador actualizado');
+  assert.match(p.doc.getElementById('managed-status').textContent,/pendiente de corregir/);
+  mode='login';p.advance(30000);await tick();
+  assert(!p.doc.body.classList.contains('ready'));
+  assert.match(p.doc.getElementById('managed-status').textContent,/inicia sesión/);
+  console.log('PASS: published/draft rendering, scene/video boundaries, conditional polling, invalid draft retention, expired sessions, offline retention and revoked displays.');
 })().catch(error=>{console.error(error);process.exitCode=1});
