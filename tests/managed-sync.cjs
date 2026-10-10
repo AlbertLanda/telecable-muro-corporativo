@@ -10,6 +10,8 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   t.run(code,{AbortController,setTimeout,clearTimeout,fetch:async()=>{if(fail)throw new Error('offline');return {ok:!revoked,status:revoked?404:200,json:async()=>structuredClone(response)}}});
   assert.equal(t.q('.mv-photo-copy h1').textContent,'Publicación inicial');
   assert(t.q('[data-module="weather"]').hidden);assert(t.q('[data-module="birthdays"]').hidden);
+  assert(t.q('.mv-grid').classList.contains('mv-no-sidebar'));
+  assert.equal(t.q('.mv-program-count').textContent,'01 / 01','Videos have their own full-screen playlist');
   assert(t.doc.body.classList.contains('ready'));
   assert.equal(t.q('#mvp-interval').value,'60000');
   response.signature='v2';response.version=2;response.contents[0].title='Segunda publicación';
@@ -38,12 +40,14 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
     {name:'Mañana',department:'TI',day:7,month:10,is_today:false,days_until:1}];
   data.config.quiz_enabled=true;data.preview=true;
   b.win.MURO_BOOT={manifest:data,poll_url:null};b.run(code,{AbortController,setTimeout,clearTimeout});
+  assert.equal(b.q('.mv-program-count').textContent,'01 / 06');
   assert.equal(b.q('.mv-hero-photo').src,'/foto/');assert(!b.q('.mv-hero-photo').hidden);
   assert.equal(b.q('.mv-birthday-row strong').textContent,'Nombre Real');
   b.advance(8000);assert.equal(b.scene(),'2');assert.equal(b.q('.mv-active h1').textContent,'Encuentro');
   b.advance(8000);assert.equal(b.scene(),'3');assert.equal(b.q('.mv-active h1').textContent,'Gracias');
   b.advance(8000);assert.equal(b.scene(),'1');assert.equal(b.q('.mv-active .mv-nameplate strong').textContent,'Nombre Real');
   assert(b.root.classList.contains('mv-birthday-focus'));
+  assert.equal(b.q('.mv-program-count').textContent,'04 / 06');
   assert.equal(b.q('.mv-active .mv-description').textContent,'Una dedicatoria personal.');
   assert.match(b.q('.mv-active .mv-overline').textContent,/6 de octubre/);
   const birthdayPhoto=b.q('.mv-birthday-photo'),fallback=b.q('.mv-medallion>span');
@@ -56,6 +60,33 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   assert.match(b.q('.mv-active .mv-description').textContent,/Gracias por ser parte/);
   b.advance(16000);assert.equal(b.scene(),'4');
   assert(!b.root.classList.contains('mv-birthday-focus'));
+
+  const n=setup(),items=structuredClone(initial);
+  items.config.qr_enabled=true;
+  items.contents=[{kind:'image',title:'Primera foto',url:'/primera/',duration:8},{kind:'message',title:'Solo texto',body:'Mensaje completo',duration:8}];
+  n.win.MURO_BOOT={manifest:items,poll_url:null};n.run(code,{AbortController,setTimeout,clearTimeout});
+  assert(!n.q('.mv-grid').classList.contains('mv-no-sidebar'),'A QR-only rail must remain visible');
+  assert.equal(n.q('.mv-program-count').textContent,'01 / 02');
+  n.advance(4000);assert.equal(n.q('[data-managed-progress]').style.transform,'scaleX(0.5)');
+  n.advance(4000);
+  assert.equal(n.scene(),'0');assert.equal(n.q('.mv-program-count').textContent,'02 / 02');
+  assert.equal(n.q('[data-managed-progress]').style.transform,'scaleX(0)');
+  assert.equal(n.q('.mv-photo-copy h1').textContent,'Solo texto');
+  assert(n.q('.mv-hero-photo').hidden);assert.equal(n.q('.mv-hero-photo').src,'');
+  assert(n.root.classList.contains('mv-message-focus'));
+  n.advance(8000);assert.equal(n.q('.mv-program-count').textContent,'01 / 02');
+  assert(!n.root.classList.contains('mv-message-focus'));
+  assert.equal(n.q('.mv-hero-photo').src,'/primera/');
+
+  const dense=setup(),all=structuredClone(data);
+  all.config.qr_enabled=true;all.music_url='/music/';
+  all.birthdays[0].name='Nombre compuesto de prueba suficientemente largo para la tarjeta';
+  dense.win.MURO_BOOT={manifest:all,poll_url:null};dense.run(code,{AbortController,setTimeout,clearTimeout});
+  assert(dense.root.classList.contains('mv-rail-dense'));
+  assert.equal(dense.root.querySelectorAll('.mv-birthday-row').length,2);
+  assert.equal(dense.q('.mv-program-count').textContent,'01 / 06','Compact rail must not remove birthday cards from the program');
+  dense.advance(24000);assert(dense.root.classList.contains('mv-birthday-long'));
+  dense.advance(16000);assert(!dense.root.classList.contains('mv-birthday-long'));
 
   const p=setup(),draft=structuredClone(initial);
   draft.preview=true;draft.version='draft-1';draft.signature='draft-1';
@@ -81,5 +112,5 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   mode='login';p.advance(30000);await tick();
   assert(!p.doc.body.classList.contains('ready'));
   assert.match(p.doc.getElementById('managed-status').textContent,/inicia sesión/);
-  console.log('PASS: published/draft rendering, scene/video boundaries, conditional polling, invalid draft retention, expired sessions, offline retention and revoked displays.');
+  console.log('PASS: program counter/progress, photo/text transitions, compact rails, birthday cards, scene/video boundaries, conditional polling, invalid draft retention, expired sessions, offline retention and revoked displays.');
 })().catch(error=>{console.error(error);process.exitCode=1});

@@ -43,6 +43,9 @@ source = (PILOT / 'index.html').read_text(encoding='utf-8')
 doc = Document()
 doc.feed(source)
 assert len(doc.stack) == 1
+player = Document()
+player.feed((PILOT.parent / 'wall/templates/wall/player.html').read_text(encoding='utf-8'))
+assert len(player.stack) == 1, 'Unbalanced production player template'
 clips = json.loads(re.search(r'id="mvp-demo-data">([\s\S]*?)</script>', source)[1])
 assert len(clips) == 2
 for clip in clips:

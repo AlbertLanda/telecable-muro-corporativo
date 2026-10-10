@@ -24,7 +24,11 @@
   let managed=false,managedBoundary=null,managedPending=null,managedEventDate=null,managedSound=false;
   function nextScene(){if(managedBoundary)managedBoundary();else rotate(scene+1);}
   function sceneDuration(){return scene===4?Math.max(duration,15000):duration;}
-  function progress(){fills.forEach((f,i)=>{f.style.transform='scaleX('+(i<scene?1:i===scene?Math.min(1,elapsed/sceneDuration()):0)+')';});}
+  function progress(){
+    fills.forEach((f,i)=>{f.style.transform='scaleX('+(i<scene?1:i===scene?Math.min(1,elapsed/sceneDuration()):0)+')';});
+    const managedFill=q('[data-managed-progress]');
+    if(managed&&managedFill)managedFill.style.transform='scaleX('+Math.min(1,elapsed/sceneDuration())+')';
+  }
   function setTicker(message){
     const el=q('.mv-ticker-message');el.textContent=message;
     el.classList.remove('mv-ticker-enter');void el.offsetWidth;el.classList.add('mv-ticker-enter');
@@ -50,6 +54,8 @@
     const previous=scene;scene=(index+scenes.length)%scenes.length;elapsed=0;lastTick=performance.now();cues=new Set();
     root.classList.toggle('mv-static-entry',paused);
     burstClearAt=0;q('.mv-burst').replaceChildren();q('.mv-auto-note').classList.remove('mv-note-visible');
+    // Consecutive announcements use the same scene. Restart their entry motion.
+    if(managed&&previous===scene){scenes[scene].classList.remove('mv-active');void scenes[scene].offsetWidth;}
     scenes.forEach((s,i)=>{s.classList.toggle('mv-leaving',i===previous&&previous!==scene);s.classList.toggle('mv-active',i===scene);s.setAttribute('aria-hidden',String(i!==scene));if(i===scene)s.removeAttribute('inert');else s.setAttribute('inert','');});
     q('.mv-current-scene').textContent=sceneNames[scene]+' · '+(scene+1)+'/'+scenes.length;
     q('.mv-stage').style.setProperty('--mv-scene-time',sceneDuration()+'ms');
@@ -68,7 +74,7 @@
   function burst(count=36){
     q('.mv-burst').replaceChildren();
     if(reduced.matches)return;
-    const colors=['#d9c697','#aac5b7','#f6f2e8','#78988b'];
+    const colors=managed?['#66c2ed','#8babec','#f2d498','#d7e5fa']:['#d9c697','#aac5b7','#f6f2e8','#78988b'];
     for(let i=0;i<count;i++){const piece=document.createElement('span');piece.style.left=(i*100/count)+'%';piece.style.background=colors[i%4];piece.style.animationDelay=((i%7)*.08)+'s';piece.style.animationDuration=(3+(i%5)*.23)+'s';piece.style.width=(4+i%5)+'px';piece.style.setProperty('--mva-confetti-dx',(i%2?35:-35)+'px');q('.mv-burst').appendChild(piece);}
     burstClearAt=elapsed+5500;
   }
