@@ -14,17 +14,23 @@
   function renderSidebar(data){
     const birthdays=data.birthdays||[],events=(data.contents||[]).filter(c=>c.kind==='event');
     const event=events.slice().sort((a,b)=>new Date(a.event_at)-new Date(b.event_at)).find(e=>new Date(e.event_at)>=new Date(data.server_time||Date.now()))||events[0];
+    const moduleCount=[birthdays.length,event,data.config.qr_enabled,data.music_url].filter(Boolean).length;
     const section=q('[data-module="birthdays"]');
     section.hidden=!birthdays.length;
     Array.from(section.querySelectorAll('.mv-birthday-row')).forEach(el=>el.remove());
-    birthdays.slice(0,3).forEach(person=>{
+    // Keep the TV rail legible when several modules are enabled. All today's
+    // birthdays still receive their own full-width card in the main program.
+    birthdays.slice(0,moduleCount>=3?2:3).forEach(person=>{
       const row=document.createElement('div'),avatar=document.createElement('span'),info=document.createElement('div'),name=document.createElement('strong'),department=document.createElement('small'),label=document.createElement('em');
       row.className='mv-birthday-row'+(person.is_today?' mv-today':'');avatar.textContent=initials(person.name);name.textContent=person.name;department.textContent=person.department;
       label.textContent=person.is_today?'HOY':String(person.day).padStart(2,'0')+'/'+String(person.month).padStart(2,'0');
       info.appendChild(name);info.appendChild(department);row.appendChild(avatar);row.appendChild(info);row.appendChild(label);section.insertBefore(row,section.querySelector('p'));
     });
     q('[data-module="weather"]').hidden=true;
-    q('.mv-grid').classList.toggle('mv-no-sidebar',!birthdays.length);
+    const hasRail=!!(birthdays.length||event||data.config.qr_enabled||data.music_url);
+    q('.mv-grid').classList.toggle('mv-no-sidebar',!hasRail);
+    root.classList.toggle('mv-rail-dense',!!(birthdays.length&&event&&data.config.qr_enabled&&data.music_url));
+    root.classList.toggle('mv-rail-busy',moduleCount>=3);
     q('[data-module="event"]').hidden=!event;
     if(event){
       text('.mv-next-event h2',event.title);text('.mv-next-event p',dateText(event.event_at,{hour:'2-digit',minute:'2-digit'})+' · '+event.location);
@@ -55,9 +61,20 @@
     position=(position+1)%plan.length;
     const entry=plan[position],item=entry.item,base='.mv-scene[data-scene="'+entry.scene+'"] ';
     root.classList.toggle('mv-birthday-focus',entry.scene===1);
+    root.classList.toggle('mv-message-focus',entry.scene===0&&!item.url);
+    root.classList.toggle('mv-copy-long',(item.title||'').length>65||(item.body||'').length>180);
+    root.classList.toggle('mv-birthday-long',entry.scene===1&&((item.name||'').length>45||(item.department||'').length>45||((item.name||'')+(item.department||'')+(item.greeting||'')).length>200));
+    const labels=['Nuestro equipo','Celebramos contigo','Agenda del equipo','Orgullo Telecable','Un minuto para conectar'];
+    const program=q('.mv-program');
+    if(program){
+      program.hidden=false;
+      text('.mv-program-label',entry.scene===0&&!item.url?'Comunicación interna':labels[entry.scene]);
+      text('.mv-program-count',String(position+1).padStart(2,'0')+' / '+String(plan.length).padStart(2,'0'));
+    }
     if(entry.scene===0){
       const image=q('.mv-hero-photo');image.hidden=!item.url;
       if(item.url){image.src=item.url;image.alt=item.title;}
+      else{image.removeAttribute('src');image.alt='';}
       text('.mv-photo-copy h1',item.title);text('.mv-photo-copy p',item.body);text('.mv-photo-tags>span',current.config.name||'TELECABLE');
       text('.mv-photo-copy>span','COMUNICACIÓN INTERNA');
     }else if(entry.scene===1){

@@ -1,6 +1,8 @@
 # Telecable · Muro corporativo
 
-Panel central en **Django 5.2 / Python 3.11**, preparado para **PostgreSQL**, con archivos persistentes y publicación para las TVs. Conserva el diseño del piloto aprobado.
+Panel central en **Django 5.2 / Python 3.11**, con **PostgreSQL**, archivos persistentes y publicación para las TVs. El reproductor utiliza un diseño corporativo azul, contenido principal ampliado y módulos laterales compactos.
+
+Para una demostración, sigue [la presentación del muro a gerencia](docs/presentacion-gerencia.md).
 
 ## Iniciar en Windows
 
@@ -60,7 +62,7 @@ El panel necesita Django y una base de datos compartida. Publicar solo `piloto/`
 
 Para Azure, sigue [la preparación y despliegue a App Service](docs/azure.md). Incluye un script de carga del código, arranque automático, comprobación de PostgreSQL/archivos y códigos de incidencia para revisar errores. Requiere un recurso de destino y acceso a Azure; subir código a esta rama no despliega automáticamente.
 
-Este backend aún no se ha desplegado ni se han creado cuentas reales. Para TVs sin PC dedicada, debe alojarse en un servidor accesible. Azure es una opción. El panel no modifica la política de suspensión de la Miray: sigue [la prueba física del piloto](docs/prueba-tv.md).
+La aplicación está alojada en el App Service existente `app-muro-telecable`. Cada nueva versión requiere desplegar el código; guardar un commit en GitHub no actualiza Azure automáticamente. El panel no modifica la política de suspensión de la Miray: sigue [la prueba física del piloto](docs/prueba-tv.md).
 
 ## Pruebas
 
@@ -80,7 +82,7 @@ node tests/tv-shell.cjs
 node tests/managed-sync.cjs
 ```
 
-Las pruebas cubren permisos, CSRF, cargas, borradores/publicaciones, recuperación, fechas, medios y HTTP Range. JavaScript usa DOM/medios simulados para comprobar transiciones y actualización. No sustituyen la inspección visual ni la prueba en TV. Esta entrega se verificó con Python 3.12 y SQLite; falta comprobar el entorno de destino con Python 3.11 y PostgreSQL.
+Las pruebas cubren permisos, CSRF, cargas, borradores/publicaciones, recuperación, fechas, medios y HTTP Range. JavaScript usa DOM/medios simulados para comprobar transiciones, contador de contenidos y actualización. GitHub Actions ejecuta las comprobaciones con Python 3.11 y PostgreSQL 17; las pruebas locales también pueden usar SQLite. No sustituyen la inspección visual ni la prueba en TV.
 
 ## Estructura
 
