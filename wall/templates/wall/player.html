@@ -50,6 +50,7 @@
           <div class="mv-photo-shade"></div>
           <div class="mv-photo-tags"><span>SOMOS TELECABLE</span><small class="mv-media-note">Imagen ilustrativa · IA</small></div>
           <div class="mv-photo-copy"><span>NUESTRA GENTE, NUESTRA CONEXIÓN</span><h1>La conexión más importante<br><em>somos nosotros.</em></h1><p>Historias y momentos que nos acercan.</p></div>
+          <div class="mv-team-roles" hidden></div>
           <div class="mv-project-metric" hidden><div class="mv-project-metric-copy"><span class="mv-project-metric-label">Avance reportado</span><small class="mv-project-report-date"></small></div><strong class="mv-project-percentage"></strong><div class="mv-project-progress"><i></i></div></div>
           <div class="mv-field-meta" hidden><strong class="mv-field-date"></strong><span class="mv-field-location"></span></div>
         </section>
@@ -88,6 +89,14 @@
           </div>
           <p class="mv-quiz-result" role="status">Piensa tu respuesta. Se revelará automáticamente.</p>
         </section>
+        <section class="mv-scene mv-projects-scene" data-scene="5" aria-hidden="true" inert>
+          <div class="mv-project-board" aria-label="Proyectos de la empresa"></div>
+          <p class="mv-project-page"></p>
+        </section>
+        <section class="mv-scene mv-qr-scene" data-scene="6" aria-hidden="true" inert>
+          <div class="mv-kicker">CONECTANDO OPORTUNIDADES</div><h1>Conoce<br><em>Telecable.</em></h1><p>Escanea con tu celular y visítanos.</p><strong>telecable.pe</strong>
+          <img src="{% static 'pilot/assets/qr-telecable.png' %}" alt="Código QR que abre https://telecable.pe/">
+        </section>
         <div class="mv-air" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
         <div class="mv-burst" aria-hidden="true"></div>
         <div class="mv-auto-note" aria-hidden="true"><span></span><strong>SOMOS EQUIPO</strong></div>
@@ -95,7 +104,7 @@
         <div class="mv-slide-track" aria-hidden="true"><span><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span><span><i></i></span></div>
       </main>
       <aside class="mv-sidebar" aria-label="Módulos informativos">
-        <section class="mv-project-overview" hidden aria-label="Avance de proyectos"><span class="mv-section-label">PANORAMA DE PROYECTOS</span><h2>Así avanzamos.</h2><p class="mv-project-total"></p><div class="mv-project-list"></div><p class="mv-project-page"></p><small>Avances reportados por el equipo.</small></section>
+        <section class="mv-project-overview" hidden aria-label="Avance de proyectos"><span class="mv-section-label">PANORAMA DE PROYECTOS</span><h2>Así avanzamos.</h2><p class="mv-project-total"></p><div class="mv-project-list"></div><p class="mv-legacy-project-page"></p><small>Avances reportados por el equipo.</small></section>
 
         <div class="mv-rail-heading"><span>EN COMUNIDAD</span><i aria-hidden="true"></i></div>
         <section class="mv-weather" data-module="weather" aria-label="Ejemplo de módulo del clima; no son datos meteorológicos en vivo"><div class="mv-section-label"><span>JAUJA</span><small>EJEMPLO</small></div><div class="mv-weather-main"><span class="pilot-weather-icon" aria-hidden="true">☀</span><strong>18°</strong><div>Parcialmente<br>nublado</div></div><p>Clima de muestra</p></section>

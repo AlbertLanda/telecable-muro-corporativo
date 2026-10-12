@@ -1,16 +1,18 @@
 # Telecable · Muro corporativo
 
-Panel central en **Django 5.2 / Python 3.11**, con **PostgreSQL**, archivos persistentes y publicación para las TVs. El reproductor utiliza un diseño corporativo azul, contenido principal ampliado y módulos laterales compactos.
+Panel central en **Django 5.2 / Python 3.11**, con **PostgreSQL**, archivos persistentes y publicación para las TVs. El reproductor es un carrusel a pantalla completa: fotografías de borde a borde, grupos de proyectos, equipos, cumpleaños y videos.
 
 Para una demostración, sigue [la presentación del muro a gerencia](docs/presentacion-gerencia.md).
 
 ## Proyectos, cultura y campo
 
-En el panel, **Añadir proyecto** registra el nombre, una foto de fondo opcional y el porcentaje de avance (0–100) junto con la fecha del reporte. El avance lo ingresa Imagen a partir del dato confirmado por el responsable; vacío significa **Sin avance reportado**, no 0%. Al publicar, todos los proyectos incluidos y vigentes rotan con su propia foto, con los destacados primero. El resumen lateral se divide en grupos de cuatro para que ninguno quede fuera del recorrido.
+En el panel, **Añadir proyecto** registra el nombre, una foto de fondo opcional y el porcentaje de avance (0–100) junto con la fecha del reporte. El avance lo ingresa Imagen a partir del dato confirmado por el responsable; vacío significa **Sin avance reportado**, no 0%. Al publicar, los proyectos se muestran en grupos de hasta cuatro, cada uno con su foto y porcentaje. Los destacados van primero. Los grupos entran donde aparece el primer proyecto en el orden y usan la duración más larga del grupo. Todos los proyectos incluidos y vigentes tienen su turno.
 
 Los accesos **Valor de cultura organizacional** y **Evento en campo** permiten añadir valores oficiales y actividades con foto, texto, fecha y lugar. Conservan el mismo proceso de guardar, revisar y publicar, y las fechas de inicio/retiro.
 
-**Ver ejemplo de diseño · datos ficticios** abre una demostración privada con proyectos de muestra y una imagen ilustrativa. No guarda registros, no publica y no se envía a las TVs. Sirve para revisar el formato antes de cargar los proyectos y valores reales.
+**Nuestros equipos** permite presentar cada área con foto, mensaje y hasta tres funciones separadas por comas. **Videos a pantalla completa** permite subir un MP4 y preparar su contenido; se intercala según su orden, se reproduce completo y continúa con la siguiente escena. Los antiguos ajustes de intervalo y videos por turno se conservan en la base para publicaciones anteriores, pero el carrusel actual utiliza el orden de contenidos.
+
+**Ver ejemplo del carrusel · datos ficticios** abre una demostración privada con proyectos, equipo, cumpleaños, cultura, evento y video ilustrativos. No guarda registros, no publica y no se envía a las TVs. Sirve para revisar el formato antes de cargar los proyectos y valores reales.
 
 ## Iniciar en Windows
 
@@ -45,7 +47,7 @@ El comando solicita una contraseña propia y asigna **Editores de Imagen**. Pued
 ## Primera publicación
 
 1. **Biblioteca:** sube imágenes, MP4 o música MP3/WAV. Permanecen guardados en el servidor.
-2. **Contenido y ajustes:** añade anuncios, mensajes, videos, eventos, reconocimientos y cumpleaños; define orden, duración y fechas de inicio/retiro en hora de Lima.
+2. **Contenido y ajustes:** añade proyectos, equipos, anuncios, mensajes, videos, eventos, reconocimientos y cumpleaños; define orden, duración y fechas de inicio/retiro en hora de Lima.
 3. Guarda cada formulario y pulsa **Ver borrador**. Usa el mismo reproductor que la TV y respeta la programación actual.
 4. Pulsa **Publicar borrador guardado**: se crea una versión independiente del borrador.
 5. Con la cuenta de TI entra a **Pantallas**, crea una y abre su enlace en otra pestaña.
@@ -101,3 +103,11 @@ Las pruebas cubren permisos, CSRF, cargas, borradores/publicaciones, recuperaci�
 - `tests/`: pruebas JavaScript y recursos.
 
 El piloto estático original sigue disponible con `python -m http.server 8001 --directory piloto`, con ajustes locales de demostración separados de las publicaciones centrales.
+
+### Carrusel y compatibilidad
+
+- El QR, si está habilitado, tiene su propia escena. Los cumpleaños se muestran únicamente en su fecha de Lima; el editor puede previsualizar cada tarjeta.
+- Las fotos de proyectos, equipos y actividades se recortan para llenar su espacio. Las fotos o flyers de cumpleaños y los videos conservan su proporción completa.
+- Un video que no carga se omite tras un aviso breve; si todos fallan, se evita un bucle inmediato de reintentos. Autoplay bloqueado presenta un botón de inicio.
+- La migración 0004 añade el formato Equipo y un campo de funciones opcional. No cambia imágenes, proyectos, cumpleaños, usuarios ni publicaciones existentes.
+- Pruebas de JS usan una simulación de DOM y medios; no sustituyen la revisión visual y de reproducción en cada TV.

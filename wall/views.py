@@ -51,8 +51,10 @@ def dashboard(request):
     except ValidationError as error:
         draft_matches_live, draft_error = False, ' '.join(error.messages)
     return render(request,'wall/dashboard.html',{
-        'wall':saved_wall,'form':form,'contents':saved_wall.contents.exclude(kind='project').select_related('asset'),
+        'wall':saved_wall,'form':form,'contents':saved_wall.contents.exclude(kind__in=['project','team','video']).select_related('asset'),
         'projects':saved_wall.contents.filter(kind='project').select_related('asset').order_by('-featured','sort_order','pk'),
+        'teams':saved_wall.contents.filter(kind='team').select_related('asset'),
+        'videos':saved_wall.contents.filter(kind='video').select_related('asset'),
         'birthdays':saved_wall.birthdays.select_related('photo'),
         'content_count':saved_wall.contents.filter(enabled=True).count(),
         'birthday_count':saved_wall.birthdays.filter(enabled=True).count(),
@@ -126,7 +128,7 @@ def edit_entry(request, model, form_class, title, pk):
             initial['photo'] = asset.pk
         elif asset and model is Content and asset.kind in ('image','video'):
             initial.update(asset=asset.pk,title=asset.title)
-            if asset.kind == 'video' or initial.get('kind') not in ('project','culture','field_event'):
+            if asset.kind == 'video' or initial.get('kind') not in ('project','team','culture','field_event'):
                 initial['kind'] = asset.kind
     form = form_class(instance=entry,initial=initial)
     if request.method == 'POST':
@@ -171,13 +173,16 @@ def delete_entry(request, kind, pk):
 @access()
 @never_cache
 def library(request):
-    form = AssetForm(request.POST or None,request.FILES or None)
+    uploading_video = request.GET.get('kind') == 'video'
+    form = AssetForm(request.POST or None,request.FILES or None,initial={'kind':'video'} if uploading_video else None)
     if request.method == 'POST' and form.is_valid():
         data = form.cleaned_data
-        Asset.objects.create(title=data['title'],kind=data['kind'],file=data['file'],size=data['file'].size,content_type=data['content_type'],created_by=request.user)
+        asset = Asset.objects.create(title=data['title'],kind=data['kind'],file=data['file'],size=data['file'].size,content_type=data['content_type'],created_by=request.user)
         messages.success(request,'Archivo guardado. Ya puedes seleccionarlo en un contenido del borrador.')
+        if uploading_video and asset.kind == 'video':
+            return redirect(reverse('content_new')+'?asset='+str(asset.pk))
         return redirect('library')
-    return render(request,'wall/library.html',{'form':form,'assets':Asset.objects.all()})
+    return render(request,'wall/library.html',{'form':form,'assets':Asset.objects.all(),'uploading_video':uploading_video})
 
 
 @access('publish_wall')
@@ -271,10 +276,12 @@ def projects_example(request):
     items.append(dict(base,id=7,kind='field_event',title='Actividad en campo · ejemplo',
                       body='Aquí podrás comunicar una actividad del equipo, acompañada de una fotografía del lugar.',
                       event_at=timezone.localtime().replace(hour=10,minute=0,second=0,microsecond=0).isoformat(),location='Ubicación de ejemplo'))
-    data = {'config':{'name':'Demostración de proyectos','ticker':'DEMO: nombres, avances, fechas y valores ficticios. Fotografía ilustrativa generada con IA.',
+    items.append(dict(base,id=8,kind='team',title='Equipo de ejemplo',body='Cada conexión tiene un equipo detrás.',team_roles='Instalaciones, Soporte en campo, Mantenimiento'))
+    items.append(dict(base,id=9,kind='video',title='Video ilustrativo · demostración',asset_id='demo-video'))
+    data = {'config':{'name':'Demostración del carrusel','ticker':'DEMO: nombres, avances, fechas y valores ficticios. Fotografía ilustrativa generada con IA.',
                      'interval_minutes':15,'videos_per_turn':'all','quiz_enabled':False,'qr_enabled':False},
-            'contents':items,'birthdays':[],'music_id':None}
-    initial = manifest(data,'demo',lambda asset:static('pilot/assets/equipo-ilustrativo.jpg'),preview=True)
+            'contents':items,'birthdays':[{'id':0,'name':'Colaborador de ejemplo','department':'Área de ejemplo','day':today.day,'month':today.month,'photo_id':'illustrative','greeting':'Gracias por ser parte de nuestro equipo.'}],'music_id':None}
+    initial = manifest(data,'demo',lambda asset:static('pilot/assets/demo-1.mp4' if asset=='demo-video' else 'pilot/assets/equipo-ilustrativo.jpg'),preview=True)
     initial['demo'] = True
     return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':None}})
 

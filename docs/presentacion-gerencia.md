@@ -2,11 +2,13 @@
 
 Entra al panel y pulsa **Ver borrador**. Muestra las imágenes y mensajes guardados con el mismo reproductor de las TVs; esta vista no publica contenido. Abre la vista antes de comenzar la reunión para dar tiempo a cargar las fotografías.
 
-El diseño da prioridad al anuncio: fotografía amplia, titulares grandes y transiciones suaves. La columna lateral reúne cumpleaños, próximo evento, QR y música cuando están habilitados. Los módulos sin contenido desaparecen. La barra inferior indica el avance y la posición real del contenido; los videos tienen su propia reproducción en pantalla completa.
+El diseño es un carrusel de escenas completas. Los proyectos comparten fotografías en grupos de hasta cuatro. Equipos, cumpleaños, cultura, eventos y videos ocupan una escena cada uno. El logo y la hora flotan sobre el fondo; no hay columna lateral ni marco blanco. El QR opcional tiene su propia escena. La barra inferior indica el avance y la posición dentro del carrusel.
 
-En **Proyectos de la empresa**, añade cada proyecto con su foto y el porcentaje confirmado por el responsable. Incluye la fecha de ese reporte. Dejar los datos de avance vacíos muestra «Sin avance reportado»; 0% es un dato real distinto. Marca como destacados los que deban aparecer primero. Todos los proyectos incluidos y vigentes se recorren automáticamente; la columna lateral los agrupa de cuatro en cuatro.
+En **Nuestros equipos**, registra cada área con una foto, presentación y hasta tres funciones separadas por comas. En **Videos a pantalla completa**, usa **Subir video** o **Elegir video de Biblioteca**, define el orden y guarda. El video terminará completo antes de pasar a la siguiente escena.
 
-Mientras reúnes los datos, **Ver ejemplo de diseño · datos ficticios** permite mostrar la distribución. Está identificado como demostración y no guarda ni publica esos ejemplos. Carga por separado los valores oficiales de la empresa y los eventos en campo desde sus accesos en Programación.
+En **Proyectos de la empresa**, añade cada proyecto con su foto y el porcentaje confirmado por el responsable. Incluye la fecha de ese reporte. Dejar los datos de avance vacíos muestra «Sin avance reportado»; 0% es un dato real distinto. Marca como destacados los que deban aparecer primero. Todos los proyectos incluidos y vigentes se recorren automáticamente, de hasta cuatro en cuatro. La duración del grupo es la más larga de sus proyectos.
+
+Mientras reúnes los datos, **Ver ejemplo del carrusel · datos ficticios** permite mostrar la distribución. Está identificado como demostración y no guarda ni publica esos ejemplos. Carga por separado los valores oficiales de la empresa y los eventos en campo desde sus accesos en Programación.
 
 Para mostrar una felicitación aunque hoy no haya cumpleaños, vuelve al panel, busca el colaborador y pulsa **Ver tarjeta**. La fecha guardada no cambia. La tarjeta ocupa todo el ancho, muestra la foto o pieza de RRHH completa y utiliza iniciales si no hay fotografía disponible. En las TVs se reproduce automáticamente el día correspondiente, según la fecha de Lima.
 

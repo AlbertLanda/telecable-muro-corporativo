@@ -32,13 +32,14 @@
   const video=document.getElementById('selected-video'),placeholder=document.getElementById('selected-empty');
   const result=document.getElementById('editor-result'),explanation=document.getElementById('editor-explanation');
   const descriptions={
-    project:'La foto ocupa el fondo y el avance se muestra en grande, con la fecha del reporte. Todos los proyectos incluidos rotan; los destacados aparecen primero. Sin foto se utiliza el fondo corporativo.',
+    project:'Se agrupan hasta cuatro proyectos en una pantalla completa, cada uno con su foto, porcentaje y fecha. Si hay más, se muestran en el siguiente grupo. Los destacados van primero.',
+    team:'Una escena completa presenta al área con su fotografía, título y mensaje. Puedes añadir hasta tres funciones separadas por comas. Sin foto se utiliza el fondo corporativo.',
     culture:'El nombre del valor y una breve explicación aparecen sobre la foto o el fondo corporativo. Utiliza los valores oficiales aprobados por la empresa.',
     field_event:'Muestra una actividad en campo con fotografía, fecha y lugar. Puede ser una actividad próxima o una realizada; usa las fechas de programación para decidir cuánto tiempo se muestra.',
     image:'La imagen ocupa el fondo del anuncio, con el título y texto encima. Puede recortarse para llenar el espacio: usa una foto horizontal y revisa el borrador.',
-    video:'El video se añade a la lista y se reproduce completo. El intervalo y los videos por turno se configuran en Ajustes del muro.',
+    video:'El MP4 aparece como otra escena a pantalla completa, según su orden. Se reproduce hasta terminar y después continúa el carrusel. No se corta por la duración de las imágenes.',
     message:'Se muestra una tarjeta de texto con tu título y mensaje. Este formato no utiliza una imagen.',
-    event:'Se muestra una tarjeta con título, fecha y lugar, y el encuentro puede aparecer en el módulo lateral. Para una actividad con foto, elige Evento en campo.',
+    event:'Se muestra una tarjeta con título, fecha y lugar, en una escena completa. Para una actividad con foto, elige Evento en campo.',
     recognition:'Se muestra una tarjeta de agradecimiento con tu título, mensaje y animación de reconocimiento. Este formato no utiliza una imagen.'
   };
   let lastSource='';
@@ -49,10 +50,11 @@
   }
   function update(){
     const kind=isBirthday?'image':value('kind'),select=field(isBirthday?'photo':'asset');
-    const usesImage=['image','project','culture','field_event'].includes(kind),mediaKind=kind==='video'?'video':'image';
+    const usesImage=['image','project','team','culture','field_event'].includes(kind),mediaKind=kind==='video'?'video':'image';
     if(!isBirthday){
       explanation.textContent=descriptions[kind]||'';
       toggleField('asset',usesImage||kind==='video');
+      toggleField('team_roles',kind==='team');
       ['event_at','location'].forEach(name=>toggleField(name,kind==='event'||kind==='field_event'));
       ['progress_percent','progress_as_of','featured'].forEach(name=>toggleField(name,kind==='project'));
       field('progress_as_of').required=kind==='project'&&value('progress_percent')!=='';
