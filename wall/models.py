@@ -60,7 +60,7 @@ class Wall(models.Model):
 
 
 class Content(models.Model):
-    KINDS = [('image','Imagen / anuncio'),('video','Video'),('message','Mensaje'),('event','Evento'),('recognition','Reconocimiento')]
+    KINDS = [('project','Proyecto'),('culture','Valor de cultura organizacional'),('field_event','Evento en campo'),('image','Imagen / anuncio'),('video','Video'),('message','Mensaje'),('event','Evento'),('recognition','Reconocimiento')]
     wall = models.ForeignKey(Wall, on_delete=models.CASCADE, related_name='contents')
     kind = models.CharField('Tipo de contenido', max_length=16, choices=KINDS)
     title = models.CharField('Título', max_length=100)
@@ -68,6 +68,9 @@ class Content(models.Model):
     asset = models.ForeignKey(Asset, verbose_name='Archivo', on_delete=models.PROTECT, null=True, blank=True)
     event_at = models.DateTimeField('Fecha y hora del evento', null=True, blank=True)
     location = models.CharField('Lugar del evento', max_length=100, blank=True)
+    progress_percent = models.PositiveSmallIntegerField('Avance reportado (%)', null=True, blank=True, validators=[MinValueValidator(0),MaxValueValidator(100)])
+    progress_as_of = models.DateField('Fecha del reporte de avance', null=True, blank=True)
+    featured = models.BooleanField('Proyecto destacado', default=False)
     duration_seconds = models.PositiveSmallIntegerField('Segundos por imagen o mensaje', default=16, validators=[MinValueValidator(8),MaxValueValidator(120)])
     sort_order = models.PositiveSmallIntegerField('Orden (menor aparece primero)', default=10)
     enabled = models.BooleanField('Incluir al publicar', default=True)
@@ -83,10 +86,19 @@ class Content(models.Model):
             errors['ends_at'] = 'La fecha de retiro debe ser posterior al inicio.'
         if self.kind in ('image','video') and (not self.asset_id or self.asset.kind != self.kind):
             errors['asset'] = 'Selecciona un archivo del mismo tipo que el contenido.'
-        if self.kind not in ('image','video') and self.asset_id:
+        if self.kind in ('project','culture','field_event') and self.asset_id and self.asset.kind != 'image':
+            errors['asset'] = 'Selecciona una imagen para el fondo de esta tarjeta.'
+        if self.kind not in ('image','video','project','culture','field_event') and self.asset_id:
             errors['asset'] = 'Este tipo utiliza texto; deja el archivo vacío.'
-        if self.kind == 'event' and not self.event_at:
+        if self.kind in ('event','field_event') and not self.event_at:
             errors['event_at'] = 'Indica cuándo será el evento.'
+        if self.kind == 'project':
+            if self.progress_percent is not None and not self.progress_as_of:
+                errors['progress_as_of'] = 'Indica la fecha a la que corresponde este porcentaje.'
+            if self.progress_percent is None and self.progress_as_of:
+                errors['progress_percent'] = 'Indica el avance del reporte o deja ambos campos vacíos.'
+        elif self.progress_percent is not None or self.progress_as_of or self.featured:
+            errors['progress_percent'] = 'El avance y la opción destacado solo se utilizan en proyectos.'
         if errors:
             raise ValidationError(errors)
 

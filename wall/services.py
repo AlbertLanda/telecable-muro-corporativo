@@ -39,6 +39,8 @@ def snapshot(wall):
                 raise ValidationError('Falta el archivo de «'+item.title+'». Revisa la biblioteca antes de publicar.')
             assets.add(str(item.asset_id))
         posts.append({'id':item.pk,'kind':item.kind,'title':item.title,'body':item.body,'asset_id':str(item.asset_id) if item.asset_id else None,'event_at':item.event_at.isoformat() if item.event_at else None,'location':item.location,'duration':item.duration_seconds,'starts_at':item.starts_at.isoformat() if item.starts_at else None,'ends_at':item.ends_at.isoformat() if item.ends_at else None})
+        if item.kind == 'project':
+            posts[-1].update(progress_percent=item.progress_percent,progress_as_of=item.progress_as_of.isoformat() if item.progress_as_of else None,featured=item.featured)
     birthdays = []
     for birthday in wall.birthdays.filter(enabled=True).select_related('photo'):
         birthdays.append(birthday_snapshot(birthday))

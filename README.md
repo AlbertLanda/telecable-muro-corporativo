@@ -4,6 +4,14 @@ Panel central en **Django 5.2 / Python 3.11**, con **PostgreSQL**, archivos pers
 
 Para una demostración, sigue [la presentación del muro a gerencia](docs/presentacion-gerencia.md).
 
+## Proyectos, cultura y campo
+
+En el panel, **Añadir proyecto** registra el nombre, una foto de fondo opcional y el porcentaje de avance (0–100) junto con la fecha del reporte. El avance lo ingresa Imagen a partir del dato confirmado por el responsable; vacío significa **Sin avance reportado**, no 0%. Al publicar, todos los proyectos incluidos y vigentes rotan con su propia foto, con los destacados primero. El resumen lateral se divide en grupos de cuatro para que ninguno quede fuera del recorrido.
+
+Los accesos **Valor de cultura organizacional** y **Evento en campo** permiten añadir valores oficiales y actividades con foto, texto, fecha y lugar. Conservan el mismo proceso de guardar, revisar y publicar, y las fechas de inicio/retiro.
+
+**Ver ejemplo de diseño · datos ficticios** abre una demostración privada con proyectos de muestra y una imagen ilustrativa. No guarda registros, no publica y no se envía a las TVs. Sirve para revisar el formato antes de cargar los proyectos y valores reales.
+
 ## Iniciar en Windows
 
 Desde la carpeta del repositorio, detén primero el servidor estático (`Ctrl+C`) si sigue usando el puerto 8000.

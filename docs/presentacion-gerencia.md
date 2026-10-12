@@ -4,6 +4,10 @@ Entra al panel y pulsa **Ver borrador**. Muestra las imágenes y mensajes guarda
 
 El diseño da prioridad al anuncio: fotografía amplia, titulares grandes y transiciones suaves. La columna lateral reúne cumpleaños, próximo evento, QR y música cuando están habilitados. Los módulos sin contenido desaparecen. La barra inferior indica el avance y la posición real del contenido; los videos tienen su propia reproducción en pantalla completa.
 
+En **Proyectos de la empresa**, añade cada proyecto con su foto y el porcentaje confirmado por el responsable. Incluye la fecha de ese reporte. Dejar los datos de avance vacíos muestra «Sin avance reportado»; 0% es un dato real distinto. Marca como destacados los que deban aparecer primero. Todos los proyectos incluidos y vigentes se recorren automáticamente; la columna lateral los agrupa de cuatro en cuatro.
+
+Mientras reúnes los datos, **Ver ejemplo de diseño · datos ficticios** permite mostrar la distribución. Está identificado como demostración y no guarda ni publica esos ejemplos. Carga por separado los valores oficiales de la empresa y los eventos en campo desde sus accesos en Programación.
+
 Para mostrar una felicitación aunque hoy no haya cumpleaños, vuelve al panel, busca el colaborador y pulsa **Ver tarjeta**. La fecha guardada no cambia. La tarjeta ocupa todo el ancho, muestra la foto o pieza de RRHH completa y utiliza iniciales si no hay fotografía disponible. En las TVs se reproduce automáticamente el día correspondiente, según la fecha de Lima.
 
 Deja avanzar el muro para mostrar el cambio de escenas y, si está habilitado, el reto con respuesta automática. Las animaciones se reducen cuando el navegador solicita menos movimiento. Para revisar video o activar sonido, pulsa **OK / Enter** y usa las opciones de pantalla. El audio requiere una primera interacción del usuario cuando el navegador lo exige.

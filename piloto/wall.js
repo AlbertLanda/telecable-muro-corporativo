@@ -97,7 +97,7 @@
     const now=new Date();q('.mv-clock time').textContent=new Intl.DateTimeFormat('es-PE',{timeZone:'America/Lima',hour:'2-digit',minute:'2-digit',hour12:false}).format(now);q('.mv-clock time').setAttribute('datetime',now.toISOString());q('.mv-clock>span').textContent=new Intl.DateTimeFormat('es-PE',{timeZone:'America/Lima',weekday:'long',day:'numeric',month:'long'}).format(now);
     if(managed&&!managedEventDate){q('.mv-countdown').textContent='';return;}
     const diff=new Date(managed?managedEventDate:'2026-10-08T09:00:00-05:00').getTime()-now.getTime();
-    if(diff<=0)q('.mv-countdown').textContent=managed?'Evento finalizado':'Evento de ejemplo finalizado';
+    if(diff<=0)q('.mv-countdown').textContent=managed?new Intl.DateTimeFormat('es-PE',{timeZone:'America/Lima',day:'numeric',month:'long'}).format(new Date(managedEventDate)):'Evento de ejemplo finalizado';
     else{const total=Math.floor(diff/60000),days=Math.floor(total/1440),hours=Math.floor(total%1440/60),minutes=total%60;q('.mv-countdown').textContent='Faltan '+days+' d · '+hours+' h · '+minutes+' min';}
   }
   function onVisibility(){lastTick=performance.now();rotationState();if(document.hidden){videoWasPlaying=!video.paused;playlistWasPlaying=playlistActive&&!playlistVideo.paused;video.pause();playlistVideo.pause();}else{updateClock();if(playlistWasPlaying&&!paused&&playlistActive)playPlaylistVideo();else if(videoWasPlaying&&!paused&&!playlistActive&&scene===0&&video.getAttribute('src'))video.play().catch(()=>{});videoWasPlaying=false;playlistWasPlaying=false;}}
