@@ -42,18 +42,22 @@ class WallForm(RevisionForm):
 
 class ContentForm(RevisionForm):
     field_groups = [
-        ('1. Prepara el anuncio','Elige el formato y el mensaje que verá el equipo.', ['kind','title','body','asset','event_at','location']),
+        ('1. Prepara el anuncio','Elige el formato y el mensaje que verá el equipo.', ['kind','title','body','asset','progress_percent','progress_as_of','featured','event_at','location']),
         ('2. Define cuándo se muestra','Las fechas usan la hora de Lima.', ['starts_at','ends_at','duration_seconds','sort_order','enabled']),
     ]
     class Meta:
         model = Content
-        fields = ['kind','title','body','asset','event_at','location','duration_seconds','sort_order','enabled','starts_at','ends_at']
-        widgets = {**{name: forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'}) for name in ['event_at','starts_at','ends_at']},'body':forms.Textarea(attrs={'rows':3})}
+        fields = ['kind','title','body','asset','progress_percent','progress_as_of','featured','event_at','location','duration_seconds','sort_order','enabled','starts_at','ends_at']
+        widgets = {**{name: forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'}) for name in ['event_at','starts_at','ends_at']},'body':forms.Textarea(attrs={'rows':3}),
+                   'progress_as_of':forms.DateInput(format='%Y-%m-%d',attrs={'type':'date'}),'progress_percent':forms.NumberInput(attrs={'min':0,'max':100,'step':1})}
         help_texts = {
-            'kind':'Para fotografías de eventos pasados, elige Imagen / anuncio. Evento crea una tarjeta con fecha y lugar.',
+            'kind':'Proyecto muestra foto y avance. Cultura destaca un valor oficial. Evento en campo combina foto, fecha y lugar.',
             'title':'Titular visible en el muro. En videos, identifica el clip durante la reproducción.',
             'body':'Opcional. Acompaña a la imagen, mensaje, evento o reconocimiento.',
-            'asset':'Selecciona un archivo de Biblioteca del mismo tipo. Subirlo por sí solo no lo muestra en las TV.',
+            'asset':'Para proyectos, cultura y eventos en campo, la imagen es opcional y ocupa el fondo. Usa una foto horizontal; puede recortarse al llenar la pantalla.',
+            'progress_percent':'De 0 a 100, según el reporte del responsable. Vacío: «Sin avance reportado»; no se interpreta como 0%. El sistema no calcula el avance por sí solo.',
+            'progress_as_of':'Fecha real del reporte, visible junto al porcentaje. Actualiza ambos datos cuando recibas un nuevo avance.',
+            'featured':'Los proyectos destacados aparecen primero. Los demás proyectos incluidos también se muestran en la rotación.',
             'event_at':'Fecha del encuentro. Para retirarlo después, completa también «Retirar el».',
             'location':'Ejemplo: sala de capacitación o sede central.',
             'starts_at':'Vacío: disponible al publicar. Con fecha futura: espera hasta ese momento.',
@@ -66,6 +70,12 @@ class ContentForm(RevisionForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['asset'].queryset = Asset.objects.exclude(kind='audio')
+
+    def clean(self):
+        data = super().clean()
+        if data.get('kind') != 'project':
+            data.update(progress_percent=None,progress_as_of=None,featured=False)
+        return data
 
 
 class BirthdayForm(RevisionForm):

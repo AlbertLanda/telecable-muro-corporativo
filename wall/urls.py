@@ -15,6 +15,7 @@ urlpatterns = [
     path('panel/publicaciones/',views.history,name='history'),
     path('panel/publicaciones/<int:pk>/recuperar/',views.restore,name='restore'),
     path('panel/vista-previa/',views.preview,name='preview'),
+    path('panel/ejemplo-proyectos/',views.projects_example,name='projects_example'),
     path('panel/vista-previa/manifest/',views.preview_manifest,name='preview_manifest'),
     path('panel/publicado/',views.published_preview,name='published_preview'),
     path('panel/publicado/manifest/',views.published_preview_manifest,name='published_preview_manifest'),

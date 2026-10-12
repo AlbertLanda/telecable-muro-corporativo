@@ -32,10 +32,13 @@
   const video=document.getElementById('selected-video'),placeholder=document.getElementById('selected-empty');
   const result=document.getElementById('editor-result'),explanation=document.getElementById('editor-explanation');
   const descriptions={
+    project:'La foto ocupa el fondo y el avance se muestra en grande, con la fecha del reporte. Todos los proyectos incluidos rotan; los destacados aparecen primero. Sin foto se utiliza el fondo corporativo.',
+    culture:'El nombre del valor y una breve explicación aparecen sobre la foto o el fondo corporativo. Utiliza los valores oficiales aprobados por la empresa.',
+    field_event:'Muestra una actividad en campo con fotografía, fecha y lugar. Puede ser una actividad próxima o una realizada; usa las fechas de programación para decidir cuánto tiempo se muestra.',
     image:'La imagen ocupa el fondo del anuncio, con el título y texto encima. Puede recortarse para llenar el espacio: usa una foto horizontal y revisa el borrador.',
     video:'El video se añade a la lista y se reproduce completo. El intervalo y los videos por turno se configuran en Ajustes del muro.',
     message:'Se muestra una tarjeta de texto con tu título y mensaje. Este formato no utiliza una imagen.',
-    event:'Se muestra una tarjeta con título, fecha y lugar, y el encuentro puede aparecer en el módulo inferior. Para una fotografía de un evento pasado, elige Imagen / anuncio.',
+    event:'Se muestra una tarjeta con título, fecha y lugar, y el encuentro puede aparecer en el módulo lateral. Para una actividad con foto, elige Evento en campo.',
     recognition:'Se muestra una tarjeta de agradecimiento con tu título, mensaje y animación de reconocimiento. Este formato no utiliza una imagen.'
   };
   let lastSource='';
@@ -46,25 +49,28 @@
   }
   function update(){
     const kind=isBirthday?'image':value('kind'),select=field(isBirthday?'photo':'asset');
+    const usesImage=['image','project','culture','field_event'].includes(kind),mediaKind=kind==='video'?'video':'image';
     if(!isBirthday){
       explanation.textContent=descriptions[kind]||'';
-      ['asset'].forEach(name=>toggleField(name,kind==='image'||kind==='video'));
-      ['event_at','location'].forEach(name=>toggleField(name,kind==='event'));
+      toggleField('asset',usesImage||kind==='video');
+      ['event_at','location'].forEach(name=>toggleField(name,kind==='event'||kind==='field_event'));
+      ['progress_percent','progress_as_of','featured'].forEach(name=>toggleField(name,kind==='project'));
+      field('progress_as_of').required=kind==='project'&&value('progress_percent')!=='';
       toggleField('duration_seconds',kind!=='video');
       // Keep duration submitted for model validation even when a video ignores it.
       field('duration_seconds').disabled=false;
       if(kind==='video')field('duration_seconds').value=16;
       Array.from(select.options).forEach(option=>{
         const asset=assets.find(item=>item.id===option.value);
-        option.hidden=!!asset&&asset.kind!==kind;
+        option.hidden=!!asset&&asset.kind!==mediaKind;
         option.disabled=option.hidden;
       });
       if(select.selectedOptions.length&&select.selectedOptions[0].disabled)select.value='';
-      field('event_at').required=kind==='event';
+      field('event_at').required=kind==='event'||kind==='field_event';
       select.required=kind==='image'||kind==='video';
     }
     const selected=assets.find(item=>item.id===select.value);
-    const chosen=selected&&(isBirthday||selected.kind===kind)&&!select.disabled?selected:null;
+    const chosen=selected&&selected.kind===mediaKind&&!select.disabled?selected:null;
     const source=chosen?chosen.url:'';
     if(source!==lastSource){
       image.hidden=true;video.hidden=true;image.removeAttribute('src');
@@ -74,10 +80,15 @@
       lastSource=source;
     }
     placeholder.hidden=!!chosen;
-    placeholder.textContent=isBirthday?'Sin foto: se usarán sus iniciales':kind==='image'||kind==='video'?'Selecciona un archivo de Biblioteca':'Tarjeta de texto';
+    placeholder.textContent=isBirthday?'Sin foto: se usarán sus iniciales':kind==='image'||kind==='video'?'Selecciona un archivo de Biblioteca':usesImage?'Sin foto: fondo corporativo':'Tarjeta de texto';
     preview.hidden=false;
     document.getElementById('selected-title').textContent=value(isBirthday?'name':'title')||'Tu contenido';
     document.getElementById('selected-copy').textContent=value(isBirthday?'greeting':'body')||(isBirthday?'Sin dedicatoria: se usará la felicitación del equipo.':'');
+    const report=document.getElementById('selected-project-report');
+    if(report){
+      report.hidden=kind!=='project';
+      report.textContent=value('progress_percent')===''?'Sin avance reportado':value('progress_percent')+'% · Reporte: '+(value('progress_as_of')||'completa la fecha');
+    }
     let note;
     if(!field('enabled').checked)note='Excluido: se guardará en el borrador, pero no se incluirá al publicar.';
     else if(isBirthday){

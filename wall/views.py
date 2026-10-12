@@ -6,9 +6,11 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_safe
+from django.utils import timezone
 from .forms import AssetForm, BirthdayForm, ContentForm, DisplayForm, WallForm
 from .models import Asset, Birthday, Content, Display, Wall, display_token
 from .services import birthday_snapshot, check_revision, get_wall, manifest, publish, published_manifest, snapshot
@@ -49,7 +51,8 @@ def dashboard(request):
     except ValidationError as error:
         draft_matches_live, draft_error = False, ' '.join(error.messages)
     return render(request,'wall/dashboard.html',{
-        'wall':saved_wall,'form':form,'contents':saved_wall.contents.select_related('asset'),
+        'wall':saved_wall,'form':form,'contents':saved_wall.contents.exclude(kind='project').select_related('asset'),
+        'projects':saved_wall.contents.filter(kind='project').select_related('asset').order_by('-featured','sort_order','pk'),
         'birthdays':saved_wall.birthdays.select_related('photo'),
         'content_count':saved_wall.contents.filter(enabled=True).count(),
         'birthday_count':saved_wall.birthdays.filter(enabled=True).count(),
@@ -111,6 +114,8 @@ def edit_entry(request, model, form_class, title, pk):
     wall = get_wall()
     entry = get_object_or_404(model,pk=pk,wall=wall) if pk else model(wall=wall)
     initial = {'revision':wall.revision}
+    if not pk and model is Content and request.GET.get('kind') in dict(Content.KINDS):
+        initial['kind'] = request.GET['kind']
     # Library shortcuts only preselect an existing, compatible asset; GET never saves.
     if not pk and request.GET.get('asset'):
         try:
@@ -120,7 +125,9 @@ def edit_entry(request, model, form_class, title, pk):
         if asset and model is Birthday and asset.kind == 'image':
             initial['photo'] = asset.pk
         elif asset and model is Content and asset.kind in ('image','video'):
-            initial.update(asset=asset.pk,kind=asset.kind,title=asset.title)
+            initial.update(asset=asset.pk,title=asset.title)
+            if asset.kind == 'video' or initial.get('kind') not in ('project','culture','field_event'):
+                initial['kind'] = asset.kind
     form = form_class(instance=entry,initial=initial)
     if request.method == 'POST':
         with transaction.atomic():
@@ -244,6 +251,32 @@ def preview(request):
         messages.error(request,' '.join(error.messages))
         return redirect('dashboard')
     return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':reverse('preview_manifest')}})
+
+
+@access()
+@require_safe
+@never_cache
+def projects_example(request):
+    """A clearly labelled, read-only design example; nothing is saved or published."""
+    today = timezone.localdate()
+    base = {'body':'Esta tarjeta ilustra cómo se verá un proyecto con su fotografía y el avance confirmado por su responsable.',
+            'asset_id':'illustrative','starts_at':None,'ends_at':None,'event_at':None,'location':'','duration':12}
+    items = []
+    for index, percentage in enumerate([72,45,100,None,0]):
+        items.append(dict(base,id=index+1,kind='project',title='Proyecto de ejemplo '+chr(65+index),
+                          progress_percent=percentage,progress_as_of=today.isoformat() if percentage is not None else None,
+                          featured=index<2))
+    items.append(dict(base,id=6,kind='culture',title='Colaboración · valor de ejemplo',
+                      body='Aquí irá un valor oficial de Telecable y una frase que explique cómo se vive en el trabajo diario.'))
+    items.append(dict(base,id=7,kind='field_event',title='Actividad en campo · ejemplo',
+                      body='Aquí podrás comunicar una actividad del equipo, acompañada de una fotografía del lugar.',
+                      event_at=timezone.localtime().replace(hour=10,minute=0,second=0,microsecond=0).isoformat(),location='Ubicación de ejemplo'))
+    data = {'config':{'name':'Demostración de proyectos','ticker':'DEMO: nombres, avances, fechas y valores ficticios. Fotografía ilustrativa generada con IA.',
+                     'interval_minutes':15,'videos_per_turn':'all','quiz_enabled':False,'qr_enabled':False},
+            'contents':items,'birthdays':[],'music_id':None}
+    initial = manifest(data,'demo',lambda asset:static('pilot/assets/equipo-ilustrativo.jpg'),preview=True)
+    initial['demo'] = True
+    return render(request,'wall/player.html',{'bootstrap':{'manifest':initial,'poll_url':None}})
 
 
 def draft_manifest():

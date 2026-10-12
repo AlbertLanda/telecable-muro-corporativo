@@ -56,6 +56,87 @@ class PublishingTests(TestCase):
     def live(self):
         return self.client.get(reverse('tv_manifest',args=[self.screen.token])).json()
 
+    def test_project_form_validates_report_range_date_and_photo(self):
+        data={'revision':0,'kind':'project','title':'Proyecto de prueba','body':'Avance confirmado',
+              'asset':str(self.asset.pk),'progress_percent':0,'progress_as_of':'2026-10-12',
+              'featured':'on','duration_seconds':16,'sort_order':10,'enabled':'on'}
+        for percentage in (0,72,100):
+            form=ContentForm(dict(data,progress_percent=percentage))
+            self.assertTrue(form.is_valid(),form.errors)
+        for percentage in (-1,101,'3.5'):
+            self.assertFalse(ContentForm(dict(data,progress_percent=percentage)).is_valid())
+        self.assertFalse(ContentForm(dict(data,progress_as_of='')).is_valid())
+        self.assertFalse(ContentForm(dict(data,progress_percent='')).is_valid())
+        self.assertFalse(ContentForm(dict(data,asset=str(self.video.pk))).is_valid())
+        empty=ContentForm(dict(data,progress_percent='',progress_as_of='',asset=''))
+        self.assertTrue(empty.is_valid(),empty.errors)
+        self.assertIsNone(empty.cleaned_data['progress_percent'])
+        self.assertEqual(self.client.post(reverse('content_new'),data).status_code,302)
+        item=Content.objects.get(kind='project')
+        self.assertEqual(item.progress_percent,0)
+        self.assertTrue(item.featured)
+        self.wall.refresh_from_db();self.assertEqual(self.wall.revision,1)
+        self.assertEqual(self.live()['version'],0)
+        self.assertContains(self.client.get('/panel/'),'0%')
+
+    def test_project_report_and_photo_are_published_as_an_immutable_snapshot(self):
+        self.post.delete()
+        item=Content.objects.create(wall=self.wall,kind='project',title='Proyecto',asset=self.asset,
+                                    progress_percent=35,progress_as_of=timezone.localdate(),featured=True)
+        url=reverse('tv_media',args=[self.screen.token,self.asset.pk])
+        self.assertEqual(Client().head(url).status_code,404)
+        first=publish(self.editor,0)
+        live=self.live()['contents'][0]
+        self.assertEqual(live['progress_percent'],35)
+        self.assertTrue(live['featured']);self.assertEqual(live['url'],url)
+        self.assertEqual(Client().head(url).status_code,200)
+        item.progress_percent=70;item.save()
+        self.assertEqual(self.live()['contents'][0]['progress_percent'],35)
+        publish(self.editor,0)
+        self.assertEqual(self.live()['contents'][0]['progress_percent'],70)
+        first.refresh_from_db();self.assertEqual(first.snapshot['contents'][0]['progress_percent'],35)
+        publish(self.editor,0,restore=first.pk)
+        self.assertEqual(self.live()['contents'][0]['progress_percent'],35)
+        item.refresh_from_db();self.assertEqual(item.progress_percent,70)
+
+    def test_culture_and_field_events_accept_images_and_preserve_lima_dates(self):
+        data={'revision':0,'title':'Contenido de prueba','asset':str(self.asset.pk),
+              'duration_seconds':16,'sort_order':10,'enabled':'on'}
+        culture=ContentForm(dict(data,kind='culture'))
+        self.assertTrue(culture.is_valid(),culture.errors)
+        self.assertFalse(ContentForm(dict(data,kind='field_event')).is_valid())
+        event=ContentForm(dict(data,kind='field_event',event_at='2026-10-12T10:00',location='Campo de prueba'))
+        self.assertTrue(event.is_valid(),event.errors)
+        self.assertEqual(timezone.localtime(event.cleaned_data['event_at']).hour,10)
+        self.assertFalse(ContentForm(dict(data,kind='culture',asset=str(self.video.pk))).is_valid())
+        for kind in ('project','culture','field_event'):
+            response=self.client.get(reverse('content_new'),{'kind':kind})
+            self.assertEqual(response.context['form']['kind'].value(),kind)
+
+    def test_changing_project_type_clears_project_only_fields(self):
+        project=Content.objects.create(wall=self.wall,kind='project',title='Proyecto',progress_percent=50,
+                                       progress_as_of=timezone.localdate(),featured=True)
+        data={'revision':0,'kind':'culture','title':'Valor aprobado','duration_seconds':16,'sort_order':10,'enabled':'on'}
+        self.assertEqual(self.client.post(reverse('content_edit',args=[project.pk]),data).status_code,302)
+        project.refresh_from_db()
+        self.assertIsNone(project.progress_percent);self.assertIsNone(project.progress_as_of)
+        self.assertFalse(project.featured)
+
+    def test_projects_example_is_private_labelled_and_never_mutates_content(self):
+        before=(Content.objects.count(),Publication.objects.count(),Wall.objects.get(pk=1).revision)
+        url=reverse('projects_example')
+        self.assertEqual(Client().get(url).status_code,302)
+        response=self.client.get(url)
+        self.assertEqual(response.status_code,200)
+        self.assertIsNone(response.context['bootstrap']['poll_url'])
+        data=response.context['bootstrap']['manifest']
+        self.assertTrue(data['demo'])
+        self.assertEqual(sum(c['kind']=='project' for c in data['contents']),5)
+        self.assertEqual(data['config']['name'],'Demostración de proyectos')
+        self.assertEqual(before,(Content.objects.count(),Publication.objects.count(),Wall.objects.get(pk=1).revision))
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.client.get(url).status_code,403)
+
     def test_login_permissions_and_editor_cannot_manage_ti(self):
         anonymous = Client()
         self.assertEqual(anonymous.get('/panel/').status_code,302)
