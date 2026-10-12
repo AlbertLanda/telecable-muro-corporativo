@@ -1,6 +1,7 @@
 // Deterministic script-level checks. This is a DOM/media shim, not a browser render.
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path'),child=require('child_process');
 const fixture=JSON.parse(child.execFileSync(process.env.PYTHON||'python3',[path.join(__dirname,'validate.py'),'--fixture'],{encoding:'utf8'}));
+const managedFixture=JSON.parse(child.execFileSync(process.env.PYTHON||'python3',[path.join(__dirname,'validate.py'),'--managed-fixture'],{encoding:'utf8'}));
 const source=fs.readFileSync(path.join(__dirname,'../piloto/wall.js'),'utf8');
 class El {
  constructor(data){this.tagName=data.tag;this.attrs={...data.attrs};this.children=[];this.parent=null;this.listeners={};this.style={setProperty(k,v){this[k]=v}};this.isConnected=true;this.clientHeight=370;this.offsetWidth=700;this.paused=true;this.ended=false;this.muted=false;this.volume=1;this.value=this.attrs.value||'';this.checked='checked' in this.attrs;this.disabled='disabled' in this.attrs;this.hidden='hidden' in this.attrs;this.currentTime=0;
@@ -48,8 +49,8 @@ function single(el,s){if(!(el instanceof El))return false;let ok=true;
 function matches(el,s){const parts=s.trim().replace(/\s*>\s*/g,' > ').split(/\s+/);let i=parts.length-1;if(!single(el,parts[i--]))return false;
  while(i>=0){if(parts[i]==='>'){el=el.parent;i--;if(!single(el,parts[i--]))return false;}else{let p=el.parent;while(p&&!single(p,parts[i]))p=p.parent;if(!p)return false;el=p;i--;}}return true;
 }
-function setup(reduced=false){
- const doc=new El(fixture),root=doc.querySelector('#tc-mural-videos');doc.hidden=false;doc.getElementById=id=>doc.querySelector('#'+id);doc.createElement=tag=>new El({tag,attrs:{},children:[]});doc.createTextNode=t=>new Text(t);
+function setup(reduced=false,production=false){
+ const doc=new El(production?managedFixture:fixture),root=doc.querySelector('#tc-mural-videos');doc.hidden=false;doc.getElementById=id=>doc.querySelector('#'+id);doc.createElement=tag=>new El({tag,attrs:{},children:[]});doc.createTextNode=t=>new Text(t);
  let now=0,nextId=1,intervals=new Map();const motion={matches:reduced,listeners:[],addEventListener(k,f){this.listeners.push(f)},removeEventListener(k,f){this.listeners=this.listeners.filter(x=>x!==f)}};
  const win={matchMedia:()=>motion,addEventListener(){}};doc.body=doc.querySelector('body');
  const ctx={document:doc,window:win,performance:{now:()=>now},setInterval:(fn,ms)=>{const id=nextId++;intervals.set(id,{fn,ms,next:now+ms});return id},clearInterval:id=>intervals.delete(id),requestAnimationFrame:()=>1,cancelAnimationFrame(){},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Intl,Date,Set,console};

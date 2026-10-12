@@ -2,22 +2,22 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {setup}=require('./dom-shim.cjs');
 const code=fs.readFileSync(path.join(__dirname,'../piloto/managed.js'),'utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'Bienvenidos',welcome_body:'Equipo',ticker:'Aviso publicado',interval_minutes:1,videos_per_turn:'all',quiz_enabled:false,qr_enabled:false},contents:[{id:1,kind:'message',title:'Publicación inicial',body:'Sin ejemplos',duration:16},{id:2,kind:'video',title:'Video publicado',url:'/tv/token/archivo/clip/'}],birthdays:[],music_url:null};
+const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'Bienvenidos',welcome_body:'Equipo',ticker:'Aviso publicado',interval_minutes:1,videos_per_turn:'all',quiz_enabled:false,qr_enabled:false},contents:[{id:1,kind:'message',title:'Publicación inicial',body:'Sin ejemplos',duration:40},{id:2,kind:'video',title:'Video publicado',url:'/tv/token/archivo/clip/'}],birthdays:[],music_url:null};
 
 (async()=>{
-  const t=setup();t.win.MURO_BOOT={manifest:structuredClone(initial),poll_url:'/tv/token/manifest/'};
+  const t=setup(false,true);t.win.MURO_BOOT={manifest:structuredClone(initial),poll_url:'/tv/token/manifest/'};
   let response=structuredClone(initial),fail=false,revoked=false;
   t.run(code,{AbortController,setTimeout,clearTimeout,fetch:async()=>{if(fail)throw new Error('offline');return {ok:!revoked,status:revoked?404:200,json:async()=>structuredClone(response)}}});
   assert.equal(t.q('.mv-photo-copy h1').textContent,'Publicación inicial');
   assert(t.q('[data-module="weather"]').hidden);assert(t.q('[data-module="birthdays"]').hidden);
   assert(t.q('.mv-grid').classList.contains('mv-no-sidebar'));
-  assert.equal(t.q('.mv-program-count').textContent,'01 / 01','Videos have their own full-screen playlist');
+  assert.equal(t.q('.mv-program-count').textContent,'01 / 02','Videos are scenes in the same carousel');
   assert(t.doc.body.classList.contains('ready'));
   assert.equal(t.q('#mvp-interval').value,'60000');
   response.signature='v2';response.version=2;response.contents[0].title='Segunda publicación';
   t.advance(30000);await tick();
   assert.equal(t.q('.mv-photo-copy h1').textContent,'Publicación inicial','Polling must not interrupt a scene');
-  t.advance(2000);
+  t.advance(10000);
   assert.equal(t.q('.mv-photo-copy h1').textContent,'Segunda publicación');
   t.click('video-test');await tick();const player=t.q('.mvp-player');
   assert.equal(player.src,'/tv/token/archivo/clip/');assert.equal(player.muted,true);
@@ -33,7 +33,7 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   assert(!t.doc.body.classList.contains('ready'));assert(t.win.TelecableWall.getState().paused);
   assert.equal(t.doc.getElementById('pilot-tv-tools').hidden,false);
 
-  const b=setup(),data=structuredClone(initial);
+  const b=setup(false,true),data=structuredClone(initial);
   data.contents=[{id:1,kind:'image',title:'Foto real',body:'Equipo',url:'/foto/',duration:8},{id:2,kind:'event',title:'Encuentro',body:'Información',event_at:'2026-10-08T14:00:00Z',location:'Sala A',duration:8},{id:3,kind:'recognition',title:'Gracias',body:'Nuestro equipo',duration:8}];
   data.birthdays=[{name:'Nombre Real',department:'Imagen',day:6,month:10,is_today:true,days_until:0,photo_url:'/foto-cumple/',greeting:'Una dedicatoria personal.'},
     {name:'Segunda Persona',department:'TI',day:6,month:10,is_today:true,days_until:0},
@@ -61,36 +61,37 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   b.advance(16000);assert.equal(b.scene(),'4');
   assert(!b.root.classList.contains('mv-birthday-focus'));
 
-  const n=setup(),items=structuredClone(initial);
+  const n=setup(false,true),items=structuredClone(initial);
   items.config.qr_enabled=true;
   items.contents=[{kind:'image',title:'Primera foto',url:'/primera/',duration:8},{kind:'message',title:'Solo texto',body:'Mensaje completo',duration:8}];
   n.win.MURO_BOOT={manifest:items,poll_url:null};n.run(code,{AbortController,setTimeout,clearTimeout});
-  assert(!n.q('.mv-grid').classList.contains('mv-no-sidebar'),'A QR-only rail must remain visible');
-  assert.equal(n.q('.mv-program-count').textContent,'01 / 02');
+  assert(n.q('.mv-grid').classList.contains('mv-no-sidebar'),'QR has its own scene, never a sidebar');
+  assert.equal(n.q('.mv-program-count').textContent,'01 / 03');
   n.advance(4000);assert.equal(n.q('[data-managed-progress]').style.transform,'scaleX(0.5)');
   n.advance(4000);
-  assert.equal(n.scene(),'0');assert.equal(n.q('.mv-program-count').textContent,'02 / 02');
+  assert.equal(n.scene(),'0');assert.equal(n.q('.mv-program-count').textContent,'02 / 03');
   assert.equal(n.q('[data-managed-progress]').style.transform,'scaleX(0)');
   assert.equal(n.q('.mv-photo-copy h1').textContent,'Solo texto');
   assert(n.q('.mv-hero-photo').hidden);assert.equal(n.q('.mv-hero-photo').src,'');
   assert(n.root.classList.contains('mv-message-focus'));
-  n.advance(8000);assert.equal(n.q('.mv-program-count').textContent,'01 / 02');
+  n.advance(8000);assert.equal(n.scene(),'6');assert.equal(n.q('.mv-program-count').textContent,'03 / 03');
+  n.advance(12000);assert.equal(n.q('.mv-program-count').textContent,'01 / 03');
   assert(!n.root.classList.contains('mv-message-focus'));
   assert.equal(n.q('.mv-hero-photo').src,'/primera/');
 
-  const dense=setup(),all=structuredClone(data);
+  const dense=setup(false,true),all=structuredClone(data);
   all.config.qr_enabled=true;all.music_url='/music/';
   all.birthdays[0].name='Nombre compuesto de prueba suficientemente largo para la tarjeta';
   dense.win.MURO_BOOT={manifest:all,poll_url:null};dense.run(code,{AbortController,setTimeout,clearTimeout});
   assert(dense.root.classList.contains('mv-rail-dense'));
   assert.equal(dense.root.querySelectorAll('.mv-birthday-row').length,2);
-  assert.equal(dense.q('.mv-program-count').textContent,'01 / 06','Compact rail must not remove birthday cards from the program');
+  assert.equal(dense.q('.mv-program-count').textContent,'01 / 07','QR and birthdays each have a complete scene');
   dense.advance(24000);assert(dense.root.classList.contains('mv-birthday-long'));
   dense.advance(16000);assert(!dense.root.classList.contains('mv-birthday-long'));
 
-  const p=setup(),draft=structuredClone(initial);
+  const p=setup(false,true),draft=structuredClone(initial);
   draft.preview=true;draft.version='draft-1';draft.signature='draft-1';
-  draft.contents=draft.contents.filter(item=>item.kind!=='video');
+  draft.contents=draft.contents.filter(item=>item.kind!=='video');draft.contents[0].duration=16;
   p.win.MURO_BOOT={manifest:draft,poll_url:'/panel/vista-previa/manifest/'};
   let mode='unchanged',requestedHeaders;
   p.run(code,{AbortController,setTimeout,clearTimeout,fetch:async(url,options)=>{
@@ -112,24 +113,27 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   mode='login';p.advance(30000);await tick();
   assert(!p.doc.body.classList.contains('ready'));
   assert.match(p.doc.getElementById('managed-status').textContent,/inicia sesión/);
-  const projects=setup(),portfolio=structuredClone(initial);
+  const projects=setup(false,true),portfolio=structuredClone(initial);
   portfolio.contents=Array.from({length:5},(_,i)=>({id:i+1,kind:'project',title:'Proyecto '+(i+1),body:'Reporte del equipo',url:'/proyecto/'+i+'/',duration:8,progress_percent:[0,25,null,100,72][i],progress_as_of:i===2?null:'2026-10-12',featured:i===4}));
   portfolio.contents.push({kind:'culture',title:'Valor aprobado',body:'Así trabajamos.',duration:8});
   portfolio.contents.push({kind:'field_event',title:'Visita en campo',body:'Actividad del equipo',url:'/campo/',duration:8,event_at:'2026-10-12T15:00:00Z',location:'Jauja'});
   portfolio.demo=true;
   projects.win.MURO_BOOT={manifest:portfolio,poll_url:null};projects.run(code,{AbortController,setTimeout,clearTimeout});
-  assert.equal(projects.q('.mv-photo-copy h1').textContent,'Proyecto 5','Featured projects lead the program');
-  assert.equal(projects.q('.mv-program-count').textContent,'01 / 07');
-  assert.equal(projects.q('.mv-project-percentage').textContent,'72%');
-  assert.match(projects.q('.mv-project-report-date').textContent,/12 de octubre de 2026/);
-  assert.equal(projects.q('.mv-project-list').children.length,4);
+  const board=()=>projects.q('.mv-project-board'),tiles=()=>board().querySelectorAll('.mv-project-tile');
+  assert.equal(projects.scene(),'5');
+  assert.equal(tiles()[0].querySelector('h2').textContent,'Proyecto 5','Featured projects lead the first group');
+  assert.equal(projects.q('.mv-program-count').textContent,'01 / 04');
+  assert.equal(tiles().length,4);
+  assert.equal(tiles()[0].querySelector('.mv-project-tile-percent').textContent,'72%');
+  assert.match(tiles()[0].querySelector('.mv-project-tile-date').textContent,/12\/10\/2026/);
+  assert.equal(tiles()[1].querySelector('.mv-project-tile-percent').textContent,'0%');
+  assert(!tiles()[1].querySelector('.mv-project-tile-bar').hidden);
+  assert.equal(tiles()[3].querySelector('.mv-project-tile-percent').textContent,'Sin avance reportado');
+  assert(tiles()[3].querySelector('.mv-project-tile-bar').hidden);
   assert.match(projects.q('.mv-footer>span:last-child').textContent,/DATOS FICTICIOS/);
-  projects.advance(8000);assert.equal(projects.q('.mv-project-percentage').textContent,'0%');
-  assert(!projects.q('.mv-project-progress').hidden);
-  projects.advance(16000);assert.equal(projects.q('.mv-project-percentage').textContent,'Por confirmar');
-  assert(projects.q('.mv-project-progress').hidden);
-  projects.advance(8000);assert.equal(projects.q('.mv-project-percentage').textContent,'100%');
-  assert.equal(projects.q('.mv-project-list').children.length,1);
+  projects.advance(8000);
+  assert.equal(tiles().length,1);assert(board().classList.contains('mv-project-count-1'));
+  assert.equal(tiles()[0].querySelector('.mv-project-tile-percent').textContent,'100%');
   assert.match(projects.q('.mv-project-page').textContent,/5–5 de 5/);
   projects.advance(8000);assert(projects.root.classList.contains('mv-culture-focus'));
   assert(projects.q('.mv-project-overview').hidden);assert(projects.q('.mv-project-metric').hidden);
@@ -138,16 +142,59 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   assert.equal(projects.q('.mv-field-location').textContent,'Jauja');
   assert.match(projects.q('.mv-field-date').textContent,/10:00/);
   assert(!projects.q('.mv-field-meta').hidden);assert.equal(projects.q('.mv-hero-photo').src,'/campo/');
-  projects.advance(8000);assert.equal(projects.q('.mv-program-count').textContent,'01 / 07');
-  assert(projects.q('.mv-field-meta').hidden);
+  projects.advance(8000);assert.equal(projects.q('.mv-program-count').textContent,'01 / 04');
 
-  const updateProject=setup(),report=structuredClone(portfolio);
+  const updateProject=setup(false,true),report=structuredClone(portfolio);
   report.contents=[{...report.contents[0],duration:40}];report.demo=false;
   updateProject.win.MURO_BOOT={manifest:report,poll_url:'/tv/token/manifest/'};
   updateProject.run(code,{AbortController,setTimeout,clearTimeout,fetch:async()=>({status:200,ok:true,json:async()=>({...structuredClone(report),signature:'new-report',contents:[{...report.contents[0],progress_percent:80}]})})});
   updateProject.advance(30000);await tick();
-  assert.equal(updateProject.q('.mv-project-percentage').textContent,'0%');
+  assert.equal(updateProject.q('.mv-project-tile-percent').textContent,'0%');
   updateProject.advance(10000);
-  assert.equal(updateProject.q('.mv-project-percentage').textContent,'80%','New report enters at the scene boundary');
-  console.log('PASS: projects/percentages/pagination, culture and field events, program progress, photo/text transitions, birthdays, scene/video boundaries, polling, offline retention and revoked displays.');
+  assert.equal(updateProject.q('.mv-project-tile-percent').textContent,'80%','New report enters at the scene boundary');
+  // Ordered mixed-media program: team -> video -> video -> image. Clips end naturally.
+  const carousel=setup(false,true),mix=structuredClone(initial);
+  mix.contents=[{kind:'team',id:1,title:'Operaciones de prueba',body:'Nuestro equipo',team_roles:'Instalaciones, Soporte, Mantenimiento',url:'/team/',duration:8},
+    {kind:'video',id:2,title:'Primer video',url:'/clip-a/',duration:8},
+    {kind:'video',id:3,title:'Segundo video',url:'/clip-b/',duration:8},
+    {kind:'image',id:4,title:'Después del video',url:'/image/',duration:8}];
+  carousel.win.MURO_BOOT={manifest:mix,poll_url:null};carousel.run(code,{AbortController,setTimeout,clearTimeout});
+  assert(carousel.root.classList.contains('mv-team-focus'));assert.equal(carousel.q('.mv-team-roles').children.length,3);
+  assert.equal(carousel.q('.mv-hero-photo').src,'/team/');
+  carousel.advance(8000);await tick();
+  const movie=carousel.q('.mvp-player');assert.equal(movie.src,'/clip-a/');assert(movie.muted);
+  assert(carousel.q('.mv-team-roles').hidden);assert.equal(carousel.q('.mv-program-count').textContent,'02 / 04');
+  // More than the old one-minute interval: neither timer nor scene duration cuts the clip.
+  for(let i=0;i<7;i++){movie.currentTime+=10;carousel.advance(10000);await tick();assert.equal(movie.src,'/clip-a/');}
+  carousel.click('rotation');assert(movie.paused);carousel.advance(20000);assert.equal(movie.src,'/clip-a/');
+  carousel.click('rotation');await tick();assert(!movie.paused);
+  movie.ended=true;movie.emit('ended');await tick();assert.equal(movie.src,'/clip-b/');
+  assert.equal(carousel.q('.mv-program-count').textContent,'03 / 04');
+  movie.ended=true;movie.emit('ended');await tick();assert.equal(carousel.q('.mv-photo-copy h1').textContent,'Después del video');
+  assert(!carousel.win.TelecableWall.getState().playlistActive);
+  carousel.advance(8000);assert(carousel.root.classList.contains('mv-team-focus'));
+
+  // Every group size is valid; the longest project duration controls the shared page.
+  for(const count of [1,2,3,4,5,9]){
+    const g=setup(false,true),gd=structuredClone(initial);
+    gd.contents=Array.from({length:count},(_,i)=>({id:i,kind:'project',title:'P'+i,progress_percent:0,duration:i===0?12:8}));
+    g.win.MURO_BOOT={manifest:gd,poll_url:null};g.run(code,{AbortController,setTimeout,clearTimeout});
+    assert.equal(g.q('.mv-project-board').children.length,Math.min(count,4));
+    g.advance(8000);assert.match(g.q('.mv-project-page').textContent,new RegExp('1–'+Math.min(count,4)));
+    const seen=new Set();
+    for(let page=0;page<Math.ceil(count/4);page++){
+      g.q('.mv-project-board').querySelectorAll('h2').forEach(h=>seen.add(h.textContent));g.advance(page===0?4000:8000);
+    }
+    assert.equal(seen.size,count,'All company projects appear exactly across the paginated groups');
+  }
+
+  const broken=setup(false,true),bad=structuredClone(initial);
+  bad.contents=[{id:1,kind:'video',title:'Unavailable',url:'/bad/'}];
+  broken.win.MURO_BOOT={manifest:bad,poll_url:null};broken.run(code,{AbortController,setTimeout,clearTimeout});await tick();
+  broken.q('.mvp-player').emit('error');await tick();
+  assert.equal(broken.q('.mv-photo-copy h1').textContent,'Video no disponible');
+  assert(!broken.win.TelecableWall.getState().playlistActive);
+  broken.advance(7900);assert(!broken.win.TelecableWall.getState().playlistActive,'Broken-only playlists cannot spin in a synchronous loop');
+  broken.advance(100);await tick();assert(broken.win.TelecableWall.getState().playlistActive);
+  console.log('PASS: full-screen project groups, team scenes, ordered complete videos, error recovery, birthday/QR scenes, immutable publication boundaries, offline retention and revocation.');
 })().catch(error=>{console.error(error);process.exitCode=1});

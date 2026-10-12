@@ -132,10 +132,50 @@ class PublishingTests(TestCase):
         data=response.context['bootstrap']['manifest']
         self.assertTrue(data['demo'])
         self.assertEqual(sum(c['kind']=='project' for c in data['contents']),5)
-        self.assertEqual(data['config']['name'],'Demostración de proyectos')
+        self.assertEqual(data['config']['name'],'Demostración del carrusel')
+        self.assertTrue(any(c['kind']=='team' for c in data['contents']))
+        clip=next(c for c in data['contents'] if c['kind']=='video')
+        self.assertTrue(clip['url'].endswith('demo-1.mp4'))
+        self.assertTrue(data['birthdays'][0]['is_today'])
         self.assertEqual(before,(Content.objects.count(),Publication.objects.count(),Wall.objects.get(pk=1).revision))
         self.client.force_login(self.viewer)
         self.assertEqual(self.client.get(url).status_code,403)
+
+    def test_team_content_validates_photo_roles_and_preserves_published_snapshot(self):
+        data={'revision':0,'kind':'team','title':'Equipo de prueba','body':'Presentación',
+              'asset':str(self.asset.pk),'team_roles':'Instalaciones, Soporte, Mantenimiento',
+              'duration_seconds':16,'sort_order':20,'enabled':'on'}
+        form=ContentForm(data)
+        self.assertTrue(form.is_valid(),form.errors)
+        self.assertFalse(ContentForm(dict(data,asset=str(self.video.pk))).is_valid())
+        self.assertFalse(ContentForm(dict(data,team_roles='Uno, Dos, Tres, Cuatro')).is_valid())
+        self.assertEqual(self.client.post(reverse('content_new'),data).status_code,302)
+        item=Content.objects.get(kind='team')
+        self.wall.refresh_from_db()
+        self.assertEqual(self.wall.revision,1)
+        publish(self.editor,1)
+        team=next(c for c in self.live()['contents'] if c['kind']=='team')
+        self.assertEqual(team['team_roles'],data['team_roles'])
+        self.assertTrue(team['url'].endswith(str(self.asset.pk)+'/'))
+        self.assertEqual(self.client.post(reverse('content_edit',args=[item.pk]),dict(data,revision=1,kind='culture')).status_code,302)
+        item.refresh_from_db();self.assertEqual(item.team_roles,'')
+        self.assertEqual(next(c for c in self.live()['contents'] if c['id']==item.pk)['kind'],'team')
+
+    def test_video_upload_shortcut_prepares_content_without_publishing(self):
+        page=self.client.get(reverse('library'),{'kind':'video'})
+        self.assertEqual(page.context['form']['kind'].value(),'video')
+        movie=(Path(__file__).resolve().parents[1]/'piloto/assets/demo-1.mp4').read_bytes()
+        response=self.client.post(reverse('library')+'?kind=video',{'title':'Video del carrusel','kind':'video',
+            'file':SimpleUploadedFile('video.mp4',movie,content_type='video/mp4')})
+        asset=Asset.objects.get(title='Video del carrusel')
+        self.assertRedirects(response,reverse('content_new')+'?asset='+str(asset.pk))
+        self.assertFalse(Content.objects.filter(title='Video del carrusel').exists())
+        self.assertEqual(self.live()['version'],0)
+        prepared=self.client.get(response.url)
+        self.assertEqual(prepared.context['form']['kind'].value(),'video')
+        self.assertEqual(str(prepared.context['form']['asset'].value()),str(asset.pk))
+        self.assertContains(self.client.get('/panel/'),'Videos a pantalla completa')
+        self.assertContains(self.client.get('/panel/'),'Nuestros equipos')
 
     def test_login_permissions_and_editor_cannot_manage_ti(self):
         anonymous = Client()

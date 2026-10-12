@@ -60,7 +60,9 @@ css = (PILOT / 'wall.css').read_text(encoding='utf-8')
 assert not any(token in css for token in ('light-dark(', 'cqw', '@container'))
 assert (PILOT / 'assets' / 'logo-telecable.png').read_bytes().startswith(b'\x89PNG')
 assert (PILOT / 'assets' / 'equipo-ilustrativo.jpg').read_bytes().startswith(b'\xff\xd8')
-if '--fixture' in sys.argv:
+if '--managed-fixture' in sys.argv:
+    print(json.dumps(player.root, ensure_ascii=True))
+elif '--fixture' in sys.argv:
     print(json.dumps(doc.root, ensure_ascii=True))
 else:
     print('PASS: balanced HTML, unique IDs, local media references, image types and TV CSS fallbacks.')

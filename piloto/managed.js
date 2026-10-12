@@ -47,22 +47,29 @@
   function reportedProgress(item){
     return Number.isInteger(item.progress_percent)&&item.progress_percent>=0&&item.progress_percent<=100?item.progress_percent:null;
   }
-  function renderProjectOverview(item){
-    const list=q('.mv-project-list');
-    if(!list)return;
-    list.replaceChildren();
-    const index=projects.indexOf(item),start=Math.floor(Math.max(0,index)/4)*4;
-    projects.slice(start,start+4).forEach(project=>{
-      const row=document.createElement('div'),name=document.createElement('strong'),value=document.createElement('span');
+  function renderProjectBoard(item){
+    const board=q('.mv-project-board');board.replaceChildren();
+    board.className='mv-project-board mv-project-count-'+item.projects.length;
+    item.projects.forEach(project=>{
+      const tile=document.createElement('article'),photo=document.createElement('img'),copy=document.createElement('div');
+      const label=document.createElement('span'),heading=document.createElement('h2'),value=document.createElement('strong'),date=document.createElement('small');
       const bar=document.createElement('div'),fill=document.createElement('i'),progress=reportedProgress(project);
-      row.className='mv-project-row'+(project===item?' mv-project-current':'');
-      name.textContent=project.title;value.textContent=progress===null?'Sin dato':progress+'%';
-      bar.className='mv-project-row-bar';bar.hidden=progress===null;
-      fill.style.width=(progress===null?0:progress)+'%';bar.appendChild(fill);
-      row.appendChild(name);row.appendChild(value);row.appendChild(bar);list.appendChild(row);
+      tile.className='mv-project-tile';copy.className='mv-project-tile-copy';
+      photo.className='mv-project-tile-photo';photo.alt='';photo.hidden=!project.url;
+      if(project.url){photo.src=project.url;photo.onerror=()=>{photo.hidden=true;};}
+      label.className='mv-project-tile-label';label.textContent=project.featured?'PROYECTO DESTACADO':'PROYECTO';
+      heading.textContent=project.title;
+      value.className='mv-project-tile-percent'+(progress===null?' mv-unknown':'');value.textContent=progress===null?'Sin avance reportado':progress+'%';
+      date.className='mv-project-tile-date';
+      date.textContent=progress!==null&&project.progress_as_of?'Reporte: '+dateText(project.progress_as_of+'T12:00:00-05:00',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+      bar.className='mv-project-tile-bar';bar.hidden=progress===null;
+      bar.setAttribute('aria-label','Avance de '+project.title);bar.setAttribute('role','progressbar');
+      if(progress!==null){bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');bar.setAttribute('aria-valuenow',String(progress));}
+      fill.style.setProperty('--project-progress',progress===null?0:progress/100);bar.appendChild(fill);
+      [label,heading,value,bar,date].forEach(el=>copy.appendChild(el));
+      tile.appendChild(photo);tile.appendChild(copy);board.appendChild(tile);
     });
-    text('.mv-project-total',projects.length===1?'1 proyecto en pantalla':projects.length+' proyectos en pantalla');
-    text('.mv-project-page',String(start+1)+'–'+Math.min(start+4,projects.length)+' de '+projects.length+' · Rotación automática');
+    text('.mv-project-page',String(item.start+1)+'–'+(item.start+item.projects.length)+' de '+projects.length+' proyectos');
   }
   function apply(data){
     current=data;position=-1;
@@ -70,13 +77,22 @@
     projects=data.contents.filter(c=>c.kind==='project');
     projects=projects.filter(c=>c.featured).concat(projects.filter(c=>!c.featured));
     const eventDate=renderSidebar(data);
-    wall.configure({config:data.config,eventDate:eventDate,music_url:data.music_url,videos:data.contents.filter(c=>c.kind==='video')});
+    wall.configure({carousel:true,config:data.config,eventDate:eventDate,music_url:data.music_url,videos:data.contents.filter(c=>c.kind==='video')});
     text('.mv-channel strong',data.config.name||'Somos Telecable');
     text('.mv-footer>span:last-child',data.demo?'DEMOSTRACIÓN · DATOS FICTICIOS':data.preview?'BORRADOR · SIN PUBLICAR':'PUBLICADO · V'+data.version);
-    const programItems=projects.concat(data.contents.filter(c=>c.kind!=='video'&&c.kind!=='project'));
-    plan=programItems.map(c=>({scene:c.kind==='event'?2:c.kind==='recognition'?3:0,item:c}));
+    plan=[];let grouped=false;
+    data.contents.forEach(item=>{
+      if(item.kind==='project'){
+        if(grouped)return;grouped=true;
+        for(let start=0;start<projects.length;start+=4){
+          const group=projects.slice(start,start+4);
+          plan.push({scene:5,item:{kind:'project_group',projects:group,start:start,duration:Math.max(...group.map(p=>p.duration||16))}});
+        }
+      }else plan.push({scene:item.kind==='event'?2:item.kind==='recognition'?3:0,item:item});
+    });
     (data.birthdays||[]).filter(b=>b.is_today).forEach(b=>plan.push({scene:1,item:b}));
     if(!plan.length)plan.push({scene:0,item:{title:data.version===0?'Esperando la primera publicación':data.config.welcome_title,body:data.version===0?'El contenido aparecerá cuando Imagen publique el muro.':data.config.welcome_body,duration:16}});
+    if(data.config.qr_enabled)plan.push({scene:6,item:{duration:12}});
     if(data.config.quiz_enabled)plan.push({scene:4,item:{duration:16}});
     status.textContent=data.preview?'Borrador guardado · actualización automática cada 30 s. Esta vista no publica en las TV.':'Versión '+data.version+' aplicada · consulta automática cada 30 s.';
   }
@@ -85,45 +101,42 @@
     if(!plan.length)return;
     position=(position+1)%plan.length;
     const entry=plan[position],item=entry.item,base='.mv-scene[data-scene="'+entry.scene+'"] ';
-    const isProject=item.kind==='project',isCulture=item.kind==='culture',isField=item.kind==='field_event';
+    const isProject=item.kind==='project_group',isCulture=item.kind==='culture',isField=item.kind==='field_event',isTeam=item.kind==='team',isVideo=item.kind==='video';
     root.classList.toggle('mv-project-focus',isProject);
-    q('.mv-project-overview').hidden=!isProject;
+    q('.mv-project-overview').hidden=true;
+    root.classList.toggle('mv-team-focus',isTeam);
     root.classList.toggle('mv-culture-focus',isCulture);
     root.classList.toggle('mv-field-focus',isField);
-    q('.mv-grid').classList.toggle('mv-no-sidebar',!(isProject||hasStandardRail));
+    q('.mv-grid').classList.add('mv-no-sidebar');
     root.classList.toggle('mv-birthday-focus',entry.scene===1);
-    root.classList.toggle('mv-message-focus',entry.scene===0&&!item.url&&!isProject&&!isCulture&&!isField);
+    root.classList.toggle('mv-message-focus',entry.scene===0&&(!item.url||isVideo)&&!isCulture&&!isField&&!isTeam);
     root.classList.toggle('mv-copy-long',(item.title||'').length>65||(item.body||'').length>180);
     root.classList.toggle('mv-birthday-long',entry.scene===1&&((item.name||'').length>45||(item.department||'').length>45||((item.name||'')+(item.department||'')+(item.greeting||'')).length>200));
-    const labels=['Nuestro equipo','Celebramos contigo','Agenda del equipo','Orgullo Telecable','Un minuto para conectar'];
+    const labels=['Nuestro equipo','Celebramos contigo','Agenda del equipo','Orgullo Telecable','Un minuto para conectar','Proyectos de la empresa','Conoce Telecable'];
     const program=q('.mv-program');
     if(program){
       program.hidden=false;
-      text('.mv-program-label',isProject?'Proyectos de la empresa':isCulture?'Nuestra cultura':isField?'Telecable en campo':entry.scene===0&&!item.url?'Comunicación interna':labels[entry.scene]);
+      text('.mv-program-label',isProject?'Proyectos de la empresa':isCulture?'Nuestra cultura':isField?'Telecable en campo':isTeam?'Nuestros equipos':isVideo?'Videos del equipo':entry.scene===0&&!item.url?'Comunicación interna':labels[entry.scene]);
       text('.mv-program-count',String(position+1).padStart(2,'0')+' / '+String(plan.length).padStart(2,'0'));
     }
     if(entry.scene===0){
-      const image=q('.mv-hero-photo');image.hidden=!item.url;
-      if(item.url){image.src=item.url;image.alt=item.title;}
+      const image=q('.mv-hero-photo');image.hidden=!item.url||isVideo;
+      if(item.url&&!isVideo){image.src=item.url;image.alt=item.title;}
       else{image.removeAttribute('src');image.alt='';}
       text('.mv-photo-copy h1',item.title);text('.mv-photo-copy p',item.body);text('.mv-photo-tags>span',current.config.name||'TELECABLE');
-      text('.mv-photo-copy>span',isProject?(item.featured?'PROYECTO DESTACADO':'NUESTROS PROYECTOS'):isCulture?'CULTURA ORGANIZACIONAL':isField?'EVENTOS EN CAMPO':'COMUNICACIÓN INTERNA');
-      q('.mv-project-metric').hidden=!isProject;
+      text('.mv-photo-copy>span',isProject?(item.featured?'PROYECTO DESTACADO':'NUESTROS PROYECTOS'):isCulture?'CULTURA ORGANIZACIONAL':isField?'EVENTOS EN CAMPO':isTeam?'NUESTROS EQUIPOS':isVideo?'VIDEOS DEL EQUIPO':'COMUNICACIÓN INTERNA');
+      q('.mv-project-metric').hidden=true;
       q('.mv-field-meta').hidden=!isField;
-      if(isProject){
-        const progress=reportedProgress(item);
-        text('.mv-project-percentage',progress===null?'Por confirmar':progress+'%');
-        text('.mv-project-metric-label',progress===null?'Sin avance reportado':'Avance reportado');
-        text('.mv-project-report-date',progress===null?'Actualiza el dato desde el panel.':item.progress_as_of?'Al '+dateText(item.progress_as_of+'T12:00:00-05:00',{day:'2-digit',month:'long',year:'numeric'}):'Fecha de reporte pendiente');
-        q('.mv-project-progress').hidden=progress===null;
-        q('.mv-project-metric').classList.toggle('mv-project-unknown',progress===null);
-        q('.mv-project-metric').style.setProperty('--project-progress',progress===null?0:progress/100);
-        renderProjectOverview(item);
-      }
+      const roles=q('.mv-team-roles');roles.hidden=!isTeam;roles.replaceChildren();
+      if(isTeam)(item.team_roles||'').split(',').map(role=>role.trim()).filter(Boolean).slice(0,3).forEach(role=>{
+        const tag=document.createElement('span');tag.textContent=role;roles.appendChild(tag);
+      });
       if(isField){
         text('.mv-field-date',dateText(item.event_at,{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}));
         text('.mv-field-location',item.location||'');
       }
+    }else if(entry.scene===5){
+      renderProjectBoard(item);
     }else if(entry.scene===1){
       text(base+'h1','¡Feliz cumpleaños!');
       text(base+'.mv-overline',dateText(Date.UTC(2000,item.month-1,item.day,12),{day:'numeric',month:'long'}));
@@ -144,6 +157,7 @@
       text(base+'.mv-calendar-art>span',dateText(item.event_at,{month:'long'}).toUpperCase());text(base+'.mv-calendar-art>strong',dateText(item.event_at,{day:'2-digit'}));text(base+'.mv-calendar-art>small',dateText(item.event_at,{weekday:'long'}).toUpperCase());
     }else if(entry.scene===3){text(base+'h1',item.title);text(base+'.mv-description',item.body);}
     wall.showScene(entry.scene,item.duration||16);
+    if(isVideo)wall.showVideo(item.id);
     document.body.classList.add('ready');
   }
   wall.onBoundary(next,()=>!!pending);

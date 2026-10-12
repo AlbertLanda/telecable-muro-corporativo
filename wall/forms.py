@@ -18,13 +18,13 @@ class RevisionForm(forms.ModelForm):
 class WallForm(RevisionForm):
     field_groups = [
         ('Identidad y mensajes','Textos que acompañan la programación del muro.', ['name','ticker','welcome_title','welcome_body']),
-        ('Reproducción y módulos','Define cómo se alternan los contenidos.', ['interval_minutes','videos_per_turn','music','quiz_enabled','qr_enabled']),
+        ('Reproducción y módulos','Define cómo se alternan los contenidos.', ['music','quiz_enabled','qr_enabled']),
     ]
     class Meta:
         model = Wall
-        fields = ['name','welcome_title','welcome_body','ticker','interval_minutes','videos_per_turn','quiz_enabled','qr_enabled','music']
+        fields = ['name','welcome_title','welcome_body','ticker','quiz_enabled','qr_enabled','music']
         help_texts = {
-            'name':'Se muestra en el encabezado de las pantallas.',
+            'name':'Identifica el muro y acompaña la programación.',
             'ticker':'Mensaje que recorre la franja inferior del muro.',
             'welcome_title':'Aparece cuando no hay anuncios ni celebraciones del día para mostrar.',
             'welcome_body':'Acompaña al titular de bienvenida.',
@@ -32,7 +32,7 @@ class WallForm(RevisionForm):
             'videos_per_turn':'Un video por turno o todos los videos incluidos, según su orden.',
             'music':'Selecciona audio de Biblioteca. El sonido se activa desde las opciones de cada TV.',
             'quiz_enabled':'Intercala un reto cuya respuesta se revela automáticamente.',
-            'qr_enabled':'Muestra el código que abre telecable.pe desde un celular.',
+            'qr_enabled':'Añade una escena completa con el código que abre telecable.pe desde un celular.',
         }
 
     def __init__(self, *args, **kwargs):
@@ -42,19 +42,20 @@ class WallForm(RevisionForm):
 
 class ContentForm(RevisionForm):
     field_groups = [
-        ('1. Prepara el anuncio','Elige el formato y el mensaje que verá el equipo.', ['kind','title','body','asset','progress_percent','progress_as_of','featured','event_at','location']),
+        ('1. Prepara el anuncio','Elige el formato y el mensaje que verá el equipo.', ['kind','title','body','asset','team_roles','progress_percent','progress_as_of','featured','event_at','location']),
         ('2. Define cuándo se muestra','Las fechas usan la hora de Lima.', ['starts_at','ends_at','duration_seconds','sort_order','enabled']),
     ]
     class Meta:
         model = Content
-        fields = ['kind','title','body','asset','progress_percent','progress_as_of','featured','event_at','location','duration_seconds','sort_order','enabled','starts_at','ends_at']
+        fields = ['kind','title','body','asset','team_roles','progress_percent','progress_as_of','featured','event_at','location','duration_seconds','sort_order','enabled','starts_at','ends_at']
         widgets = {**{name: forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'}) for name in ['event_at','starts_at','ends_at']},'body':forms.Textarea(attrs={'rows':3}),
                    'progress_as_of':forms.DateInput(format='%Y-%m-%d',attrs={'type':'date'}),'progress_percent':forms.NumberInput(attrs={'min':0,'max':100,'step':1})}
         help_texts = {
-            'kind':'Proyecto muestra foto y avance. Cultura destaca un valor oficial. Evento en campo combina foto, fecha y lugar.',
+            'kind':'Proyectos: hasta cuatro juntos. Equipos: una escena por área. Videos: una escena completa dentro del carrusel.',
             'title':'Titular visible en el muro. En videos, identifica el clip durante la reproducción.',
             'body':'Opcional. Acompaña a la imagen, mensaje, evento o reconocimiento.',
-            'asset':'Para proyectos, cultura y eventos en campo, la imagen es opcional y ocupa el fondo. Usa una foto horizontal; puede recortarse al llenar la pantalla.',
+            'asset':'Para proyectos, equipos, cultura y eventos en campo, la imagen ocupa el fondo. Es opcional. Usa una foto horizontal y revisa el encuadre en el borrador.',
+            'team_roles':'Opcional. Hasta tres funciones separadas por comas; por ejemplo: Instalaciones, Soporte en campo, Mantenimiento.',
             'progress_percent':'De 0 a 100, según el reporte del responsable. Vacío: «Sin avance reportado»; no se interpreta como 0%. El sistema no calcula el avance por sí solo.',
             'progress_as_of':'Fecha real del reporte, visible junto al porcentaje. Actualiza ambos datos cuando recibas un nuevo avance.',
             'featured':'Los proyectos destacados aparecen primero. Los demás proyectos incluidos también se muestran en la rotación.',
@@ -62,8 +63,8 @@ class ContentForm(RevisionForm):
             'location':'Ejemplo: sala de capacitación o sede central.',
             'starts_at':'Vacío: disponible al publicar. Con fecha futura: espera hasta ese momento.',
             'ends_at':'Vacío: permanece disponible. Con fecha: se retira automáticamente al llegar esa hora.',
-            'duration_seconds':'De 8 a 120 segundos por tarjeta. Los videos se reproducen completos.',
-            'sort_order':'Usa 10, 20, 30… para dejar espacio entre anuncios. Los videos tienen su propio turno.',
+            'duration_seconds':'De 8 a 120 segundos por escena. En un grupo de proyectos se usa el tiempo más largo del grupo. Los videos duran hasta terminar.',
+            'sort_order':'Usa 10, 20, 30… para ordenar imágenes, equipos y videos. Los proyectos se agrupan donde aparece el primero; dentro del grupo van primero los destacados.',
             'enabled':'Desmárcalo para excluirlo de la siguiente publicación conservándolo en el borrador.',
         }
 
@@ -75,6 +76,8 @@ class ContentForm(RevisionForm):
         data = super().clean()
         if data.get('kind') != 'project':
             data.update(progress_percent=None,progress_as_of=None,featured=False)
+        if data.get('kind') != 'team':
+            data['team_roles'] = ''
         return data
 
 
@@ -88,7 +91,7 @@ class BirthdayForm(RevisionForm):
         fields = ['name','department','day','month','photo','greeting','enabled']
         widgets = {'greeting':forms.Textarea(attrs={'rows':3,'maxlength':180})}
         help_texts = {
-            'name':'Nombre que aparecerá en la tarjeta y en el listado de próximos cumpleaños.',
+            'name':'Nombre que aparecerá en su escena de cumpleaños.',
             'department':'Opcional. Área o equipo al que pertenece.',
             'photo':'Opcional. Sube primero la foto a Biblioteca. Se muestra completa; una foto individual se verá mejor a distancia.',
             'greeting':'Opcional, hasta 180 caracteres. Si lo dejas vacío, el muro mostrará una felicitación del equipo.',

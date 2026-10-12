@@ -6,7 +6,7 @@
   const qa=s=>Array.from(root.querySelectorAll(s));
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
   const scenes=qa('.mv-scene'),fills=qa('.mv-slide-track i');
-  const sceneNames=['Nuestro equipo','Cumpleaños','Evento','Reconocimiento','Reto de palabras'];
+  const sceneNames=['Nuestro equipo','Cumpleaños','Evento','Reconocimiento','Reto de palabras','Proyectos','Conoce Telecable'];
   const video=q('.mv-hero-video');
   const playlistVideo=q('.mvp-player');
   let playlistActive=false,playlistWasPlaying=false;
@@ -21,7 +21,7 @@
   let scene=0,elapsed=0,lastTick=performance.now(),paused=reduced.matches,burstClearAt=0;
   let cues=new Set(),quizIndex=-1,quizRevealed=false,quizChoice=null,videoWasPlaying=false;
   let duration=16000;
-  let managed=false,managedBoundary=null,managedPending=null,managedEventDate=null,managedSound=false;
+  let managed=false,managedBoundary=null,managedPending=null,managedEventDate=null,managedSound=false,managedCarousel=false;
   function nextScene(){if(managedBoundary)managedBoundary();else rotate(scene+1);}
   function sceneDuration(){return scene===4?Math.max(duration,15000):duration;}
   function progress(){
@@ -62,7 +62,7 @@
     q('.mv-stage').style.setProperty('--mva-confetti-fall',(q('.mv-stage').clientHeight+60)+'px');
     q('[data-module="birthdays"]').classList.toggle('mv-module-focus',scene===1);
     q('[data-module="event"]').classList.toggle('mv-module-focus',scene===2);
-    setTicker(tickerMessages[scene]);if(scene===4)resetQuiz();
+    setTicker(tickerMessages[scene]||tickerMessages[0]);if(scene===4)resetQuiz();
     root.classList.toggle('mv-video-visible',scene===0&&!!video.getAttribute('src'));
     if(video.getAttribute('src')){
       if(scene!==0)video.pause();
@@ -217,14 +217,21 @@
     renderSchedule();
   }
   function advanceClipCursor(){const clip=currentClip();if(!clip||!clips.length)return;const index=clips.findIndex(c=>c.id===clip.id);nextClip=(Math.max(0,index)+1)%clips.length;}
-  function finishPlaylist(message,skipCurrent=false){
+  function finishPlaylist(message,skipCurrent=false,failed=false){
     if(!playlistActive)return;
     if(skipCurrent)advanceClipCursor();
     clipToken++;playlistActive=false;clipLoading=false;awaitingGesture=false;clipAdvancePending=false;playlistElapsed=0;
     playlistVideo.pause();playlistVideo.removeAttribute('src');playlistVideo.load();q('.mvp-overlay').hidden=true;q('.mvp-retry').hidden=true;root.classList.remove('mvp-on');
     if(heroResume&&!paused&&!document.hidden&&scene===0&&video.getAttribute('src'))video.play().catch(()=>{editorStatus.textContent='Pulsa reproducir para retomar el video del muro.';});
     heroResume=false;lastTick=performance.now();applyMix();rotationState();renderPlaylist();playlistStatus.textContent=message;
-    if(managedBoundary)managedBoundary();
+    if(failed&&managedCarousel){
+      // Leave the fallback scene visible for eight seconds. An all-broken-video
+      // program must not enter an immediate error/retry loop.
+      elapsed=0;duration=8000;
+      q('.mv-photo-copy h1').textContent='Video no disponible';
+      q('.mv-photo-copy p').textContent='Continuamos en unos segundos.';
+      progress();
+    }else if(managedBoundary)managedBoundary();
   }
   function advancePlaylist(){
     if(!playlistActive)return;advanceClipCursor();batchPosition++;clipAdvancePending=false;
@@ -235,6 +242,7 @@
   function failPlaylistClip(){
     if(!playlistActive)return;const clip=currentClip(),name=clip?clip.name:'El video';
     if(clip)clipToken++;
+    if(managedCarousel){finishPlaylist('No se pudo reproducir el video. El carrusel continuará.',true,true);return;}
     advancePlaylist();playlistStatus.textContent='No se pudo reproducir «'+name+'». Se omitió para continuar. Prueba un MP4 compatible.';
   }
   async function playPlaylistVideo(){
@@ -256,11 +264,11 @@
     q('.mvp-retry').hidden=true;renderPlaylist();
     if(!paused&&!document.hidden)playPlaylistVideo();
   }
-  function startPlaylist(manual=false){
+  function startPlaylist(manual=false,singleClip=null){
     if(playlistActive||!clips.length||cleaned)return;
     if(manual&&paused){paused=false;rotationState();}
-    const count=q('#mvp-mode').value==='all'?clips.length:1;
-    batch=Array.from({length:count},(_,offset)=>clips[(nextClip+offset)%clips.length]);batchPosition=0;
+    const count=singleClip?1:q('#mvp-mode').value==='all'?clips.length:1;
+    batch=singleClip?[singleClip]:Array.from({length:count},(_,offset)=>clips[(nextClip+offset)%clips.length]);batchPosition=0;
     playlistActive=true;heroResume=scene===0&&!video.paused;video.pause();q('.mvp-overlay').hidden=false;root.classList.add('mvp-on');
     playlistStatus.textContent=count===1?'Se reproduce un video completo y después vuelve el muro.':'Se reproduce toda la lista en orden y después vuelve el muro.';
     loadPlaylistClip();
@@ -273,7 +281,7 @@
       else if(clipLoading||!playlistVideo.paused){clipStall+=dt;if(clipStall>=30000)failPlaylistClip();}
       return;
     }
-    if(q('#mvp-enabled').checked&&clips.length){playlistElapsed+=dt;
+    if(!managedCarousel&&q('#mvp-enabled').checked&&clips.length){playlistElapsed+=dt;
       // Finish any video already running inside the main scene before starting the list.
       if(playlistElapsed>=clipInterval()&&!(scene===0&&video.getAttribute('src')&&!video.ended))startPlaylist();
     }
@@ -350,9 +358,15 @@
     getState: function(){return {paused:paused,playlistActive:playlistActive,awaitingGesture:awaitingGesture,scene:scene};},
     onBoundary: function(handler,hasPending){managedBoundary=handler;managedPending=hasPending;},
     showScene: function(index,seconds){duration=Math.max(8,Number(seconds)||16)*1000;rotate(index);},
+    showVideo: function(id){
+      const clip=clips.find(c=>c.id===String(id));
+      if(!clip||playlistActive)return false;
+      startPlaylist(false,clip);return true;
+    },
     configure: function(data){
       if(playlistActive)return false;
       managed=true;
+      managedCarousel=!!data.carousel;
       const config=data.config||{};
       tickerMessages.fill(config.ticker||'Telecable');secondMessages.fill(config.ticker||'Telecable');
       sceneNotes[0]=config.name||'SOMOS TELECABLE';
