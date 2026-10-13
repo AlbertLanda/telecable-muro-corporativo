@@ -13,8 +13,8 @@ from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from .forms import AssetForm, BirthdayForm, ContentForm
-from .models import Asset, Birthday, Content, Display, Publication, Wall
+from .forms import AssetForm, BirthdayForm, ContentForm, MusicTrackForm
+from .models import Asset, Birthday, Content, Display, MusicTrack, Publication, Wall
 from .services import manifest, publish, snapshot
 
 
@@ -55,6 +55,80 @@ class PublishingTests(TestCase):
 
     def live(self):
         return self.client.get(reverse('tv_manifest',args=[self.screen.token])).json()
+
+    def audio_asset(self, title):
+        return Asset.objects.create(title=title,kind='audio',file=SimpleUploadedFile(title+'.mp3',b'ID3test'),
+                                    size=7,content_type='audio/mpeg',created_by=self.editor)
+
+    def test_music_editor_permissions_validation_and_revision(self):
+        audio = self.audio_asset('Tema A')
+        url = reverse('music_new')
+        self.assertEqual(Client().get(url).status_code,302)
+        self.client.force_login(self.viewer)
+        self.assertEqual(self.client.get(reverse('music')).status_code,403)
+        self.assertEqual(self.client.post(url,{}).status_code,403)
+        self.client.force_login(self.editor)
+        data = {'asset':str(audio.pk),'sort_order':20,'enabled':'on','revision':0}
+        self.assertFalse(MusicTrackForm(dict(data,asset=str(self.asset.pk))).is_valid())
+        self.assertFalse(MusicTrackForm(dict(data,sort_order=-1)).is_valid())
+        response = self.client.get(url,{'asset':str(audio.pk)})
+        self.assertEqual(str(response.context['form']['asset'].value()),str(audio.pk))
+        self.assertRedirects(self.client.post(url,data),reverse('music'))
+        track = MusicTrack.objects.get()
+        self.wall.refresh_from_db();self.assertEqual(self.wall.revision,1)
+        self.assertEqual(self.live()['music_url'],None)
+        response = self.client.post(reverse('music_edit',args=[track.pk]),dict(data,sort_order=5))
+        self.assertContains(response,'Otra persona guardó cambios')
+        track.refresh_from_db();self.assertEqual(track.sort_order,20)
+        self.assertContains(self.client.get(reverse('music')),'Tema A')
+        self.assertEqual(self.client.get(reverse('delete_entry',args=['music',track.pk])).status_code,405)
+        self.client.post(reverse('delete_entry',args=['music',track.pk]),{'revision':0})
+        self.assertTrue(MusicTrack.objects.filter(pk=track.pk).exists())
+        self.assertRedirects(self.client.post(reverse('delete_entry',args=['music',track.pk]),{'revision':1}),reverse('music'))
+        self.assertFalse(MusicTrack.objects.exists())
+        self.assertTrue(Asset.objects.filter(pk=audio.pk).exists())
+
+    def test_music_playlist_snapshot_order_media_scope_restore_and_empty(self):
+        a,b,c = [self.audio_asset(name) for name in ('A','B','C')]
+        ta = MusicTrack.objects.create(wall=self.wall,asset=a,sort_order=20)
+        tb = MusicTrack.objects.create(wall=self.wall,asset=b,sort_order=10)
+        MusicTrack.objects.create(wall=self.wall,asset=c,sort_order=1,enabled=False)
+        self.wall.music=a;self.wall.save()  # Legacy field must never resurrect a removed song.
+        first = publish(self.editor,0)
+        self.assertEqual([t['title'] for t in self.live()['music_tracks']],['B','A'])
+        self.assertEqual(self.live()['music_url'],self.live()['music_tracks'][0]['url'])
+        self.assertEqual(set(first.assets.filter(kind='audio').values_list('pk',flat=True)),{a.pk,b.pk})
+        self.assertEqual(Client().head(reverse('tv_media',args=[self.screen.token,c.pk])).status_code,404)
+        self.assertEqual(Client().head(reverse('tv_media',args=[self.screen.token,b.pk])).status_code,200)
+        ta.sort_order=5;ta.save();a.title='A editada';a.save()
+        self.assertEqual([t['title'] for t in self.live()['music_tracks']],['B','A'])
+        publish(self.editor,0)
+        self.assertEqual([t['title'] for t in self.live()['music_tracks']],['A editada','B'])
+        publish(self.editor,0,restore=first.pk)
+        self.assertEqual([t['title'] for t in self.live()['music_tracks']],['B','A'])
+        self.wall.music_tracks.all().delete();publish(self.editor,0)
+        self.assertEqual(self.live()['music_tracks'],[]);self.assertIsNone(self.live()['music_url'])
+
+    def test_music_legacy_publication_missing_file_and_migration(self):
+        from importlib import import_module
+        from django.apps import apps
+        from django.db import connection
+        audio = self.audio_asset('Anterior')
+        self.wall.music=audio;self.wall.save()
+        migration = import_module('wall.migrations.0005_music_playlist')
+        editor = connection.schema_editor(atomic=False)
+        migration.preserve_current_music(apps,editor)
+        migration.preserve_current_music(apps,editor)
+        self.assertEqual(self.wall.music_tracks.count(),1)
+        self.assertEqual(self.wall.music_tracks.get().asset_id,audio.pk)
+        data,_ = snapshot(self.wall)
+        del data['music_tracks']
+        resolved = manifest(data,1,lambda asset:'/asset/'+str(asset))
+        self.assertEqual(len(resolved['music_tracks']),1)
+        self.assertEqual(resolved['music_tracks'][0]['url'],resolved['music_url'])
+        audio.file.storage.delete(audio.file.name)
+        with self.assertRaisesMessage(ValidationError,'No está disponible la canción'):
+            publish(self.editor,0)
 
     def test_project_form_validates_report_range_date_and_photo(self):
         data={'revision':0,'kind':'project','title':'Proyecto de prueba','body':'Avance confirmado',

@@ -48,11 +48,14 @@ def snapshot(wall):
         birthdays.append(birthday_snapshot(birthday))
         if birthday.photo_id:
             assets.add(str(birthday.photo_id))
-    if wall.music_id:
-        if not wall.music.file.storage.exists(wall.music.file.name):
-            raise ValidationError('No está disponible el archivo de música seleccionado.')
-        assets.add(str(wall.music_id))
-    return {'config':{key:getattr(wall,key) for key in ['name','welcome_title','welcome_body','ticker','interval_minutes','videos_per_turn','quiz_enabled','qr_enabled']},'music_id':str(wall.music_id) if wall.music_id else None,'contents':posts,'birthdays':birthdays}, assets
+    music = []
+    for track in wall.music_tracks.filter(enabled=True).select_related('asset'):
+        track.full_clean()
+        if not track.asset.file.storage.exists(track.asset.file.name):
+            raise ValidationError('No está disponible la canción «'+track.asset.title+'». Revisa Biblioteca.')
+        assets.add(str(track.asset_id))
+        music.append({'id':track.pk,'asset_id':str(track.asset_id),'title':track.asset.title})
+    return {'config':{key:getattr(wall,key) for key in ['name','welcome_title','welcome_body','ticker','interval_minutes','videos_per_turn','quiz_enabled','qr_enabled']},'music_id':music[0]['asset_id'] if music else None,'music_tracks':music,'contents':posts,'birthdays':birthdays}, assets
 
 
 @transaction.atomic
@@ -101,10 +104,15 @@ def manifest(data, version, media_url, preview=False, now=None):
             except ValueError:
                 continue
     resolved['birthdays'].sort(key=lambda x:(x['days_until'],x['name']))
-    resolved['music_url'] = media_url(resolved['music_id']) if resolved['music_id'] else None
+    # Historical publications keep playing their original single song.
+    music = resolved.get('music_tracks')
+    if music is None:
+        music = [{'id':'legacy','asset_id':resolved['music_id'],'title':'Música del equipo'}] if resolved.get('music_id') else []
+    resolved['music_tracks'] = [{**track,'url':media_url(track['asset_id'])} for track in music]
+    resolved['music_url'] = resolved['music_tracks'][0]['url'] if music else None
     resolved.update(version=version,preview=preview,server_time=now.isoformat())
     # Changes in scheduling or local date must also propagate without a new publish.
-    signature = json.dumps([version,today.isoformat(),active,resolved['birthdays'],resolved['config'],resolved['music_url']],sort_keys=True)
+    signature = json.dumps([version,today.isoformat(),active,resolved['birthdays'],resolved['config'],resolved['music_tracks']],sort_keys=True)
     resolved['signature'] = hashlib.sha256(signature.encode()).hexdigest()
     return resolved
 

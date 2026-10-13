@@ -3,7 +3,7 @@ from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from django import forms
 from django.conf import settings
-from .models import Asset, Birthday, Content, Display, Wall
+from .models import Asset, Birthday, Content, Display, MusicTrack, Wall
 
 
 class RevisionForm(forms.ModelForm):
@@ -18,11 +18,11 @@ class RevisionForm(forms.ModelForm):
 class WallForm(RevisionForm):
     field_groups = [
         ('Identidad y mensajes','Textos que acompañan la programación del muro.', ['name','ticker','welcome_title','welcome_body']),
-        ('Reproducción y módulos','Define cómo se alternan los contenidos.', ['music','quiz_enabled','qr_enabled']),
+        ('Reproducción y módulos','La lista de canciones se prepara en el apartado Música.', ['quiz_enabled','qr_enabled']),
     ]
     class Meta:
         model = Wall
-        fields = ['name','welcome_title','welcome_body','ticker','quiz_enabled','qr_enabled','music']
+        fields = ['name','welcome_title','welcome_body','ticker','quiz_enabled','qr_enabled']
         help_texts = {
             'name':'Identifica el muro y acompaña la programación.',
             'ticker':'Mensaje que recorre la franja inferior del muro.',
@@ -30,14 +30,28 @@ class WallForm(RevisionForm):
             'welcome_body':'Acompaña al titular de bienvenida.',
             'interval_minutes':'Tiempo de anuncios entre turnos de video. No controla la actualización de publicaciones.',
             'videos_per_turn':'Un video por turno o todos los videos incluidos, según su orden.',
-            'music':'Selecciona audio de Biblioteca. Al abrir el borrador o la TV, pulsa «Activar sonido» para escuchar la música y los videos.',
             'quiz_enabled':'Intercala un reto cuya respuesta se revela automáticamente.',
             'qr_enabled':'Añade una escena completa con el código que abre telecable.pe desde un celular.',
         }
 
+
+class MusicTrackForm(RevisionForm):
+    field_groups = [
+        ('Prepara la canción','Se reproduce completa, después pasa a la siguiente. Al terminar la lista, vuelve al inicio.', ['asset','sort_order','enabled']),
+    ]
+
+    class Meta:
+        model = MusicTrack
+        fields = ['asset','sort_order','enabled']
+        help_texts = {
+            'asset':'Selecciona un MP3 o WAV que hayas subido a Biblioteca.',
+            'sort_order':'Los números menores suenan primero. Usa 10, 20, 30… para dejar espacio entre canciones. En un empate, va primero la que añadiste antes.',
+            'enabled':'Desmárcalo para dejarla fuera de la próxima publicación sin quitarla de la lista.',
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['music'].queryset = Asset.objects.filter(kind='audio')
+        self.fields['asset'].queryset = Asset.objects.filter(kind='audio').order_by('title','pk')
 
 
 class ContentForm(RevisionForm):

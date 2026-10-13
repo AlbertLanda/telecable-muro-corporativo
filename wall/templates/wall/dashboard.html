@@ -34,7 +34,7 @@
 <section class="panel" id="videos">
   <div class="section-head"><div><span class="eyebrow">UNA ESCENA MÁS DEL CARRUSEL</span><h2>Videos a pantalla completa</h2><p>Cada video se reproduce hasta terminar y después sigue la siguiente escena. El campo Orden define dónde aparece.</p></div><a class="button primary" href="{% url 'library' %}?kind=video">+ Subir video</a></div>
   <div class="content-shortcuts"><a class="button" href="{% url 'content_new' %}?kind=video">Elegir video de Biblioteca</a></div>
-  <div class="info-callout"><strong>Subir → preparar → revisar → publicar</strong><p>MP4 de hasta 250 MB; utiliza H.264 con audio AAC para TV. Al abrir el borrador o la TV, pulsa «Activar sonido»: habilita la música y el audio de los videos. El video conserva su proporción y no se recorta.</p></div>
+  <div class="info-callout"><strong>Subir → preparar → revisar → publicar</strong><p>MP4 de hasta 250 MB; utiliza H.264 con audio AAC para TV. El sonido intenta iniciarse al abrir el muro. Si el navegador lo bloquea, pulsa «Activar sonido» con el control de la TV. El video conserva su proporción y no se recorta.</p></div>
   {% include 'wall/content_table.html' with entries=videos empty_title='Añade un video al carrusel' empty_copy='Después de subirlo, selecciona su orden, guarda el borrador y publica.' %}
 </section>
 <section class="panel" id="contents">
@@ -53,5 +53,5 @@
   {% empty %}<tr><td colspan="4" class="empty"><strong>Cada persona merece su momento</strong><p>Añade nombre, día y mes. La foto y la dedicatoria son opcionales.</p></td></tr>{% endfor %}
   </tbody></table></div>
 </section>
-<section class="panel" id="settings"><div class="section-head"><div><span class="eyebrow">IDENTIDAD Y REPRODUCCIÓN</span><h2>Ajustes del muro</h2><p>Guarda estos ajustes antes de revisar el borrador o publicar.</p></div></div><form method="post" data-edit-form>{% csrf_token %}{% include 'wall/fields.html' %}<div class="form-actions"><button class="primary">Guardar ajustes en borrador</button><span>Después, revisa y publica desde la parte superior.</span></div></form></section>
+<section class="panel" id="settings"><div class="section-head"><div><span class="eyebrow">IDENTIDAD Y REPRODUCCIÓN</span><h2>Ajustes del muro</h2><p>La música se organiza en <a href="{% url 'music' %}">Lista de música →</a>.</p><p>Guarda estos ajustes antes de revisar el borrador o publicar.</p></div></div><form method="post" data-edit-form>{% csrf_token %}{% include 'wall/fields.html' %}<div class="form-actions"><button class="primary">Guardar ajustes en borrador</button><span>Después, revisa y publica desde la parte superior.</span></div></form></section>
 {% endblock %}
