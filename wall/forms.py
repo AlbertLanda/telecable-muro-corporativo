@@ -30,7 +30,7 @@ class WallForm(RevisionForm):
             'welcome_body':'Acompaña al titular de bienvenida.',
             'interval_minutes':'Tiempo de anuncios entre turnos de video. No controla la actualización de publicaciones.',
             'videos_per_turn':'Un video por turno o todos los videos incluidos, según su orden.',
-            'music':'Selecciona audio de Biblioteca. El sonido se activa desde las opciones de cada TV.',
+            'music':'Selecciona audio de Biblioteca. Al abrir el borrador o la TV, pulsa «Activar sonido» para escuchar la música y los videos.',
             'quiz_enabled':'Intercala un reto cuya respuesta se revela automáticamente.',
             'qr_enabled':'Añade una escena completa con el código que abre telecable.pe desde un celular.',
         }

@@ -25,6 +25,12 @@ Si caduca la sesión de una vista previa, el reproductor se detiene y pide volve
 
 Esta mejora no añade tablas ni servicios de Azure. Después de desplegar, recargar una vez las pestañas abiertas para cargar el código nuevo. A partir de entonces, las nuevas publicaciones y cambios guardados de las vistas previas se reciben sin recargas manuales.
 
+## Imágenes y sonido en el reproductor
+
+La vista real no incluye una fotografía de ejemplo como fondo inicial. Prepara las imágenes de la siguiente escena y oculta una foto hasta completar su carga y decodificación. Si el archivo falla o tarda, conserva el fondo corporativo; nunca muestra otra fotografía bajo el texto actual.
+
+Cuando hay música o videos, el borrador y la pantalla muestran **Activar sonido** al abrirse. Un clic o OK habilita la música seleccionada y el audio de los videos para esa sesión. El navegador puede exigir repetirlo al recargar. El menú de pantalla permite silenciar y volver a activar; la música baja de volumen mientras suena un video. Si el navegador rechaza el audio, el carrusel continúa en silencio y muestra el control para reintentarlo. Un error de archivo de música aparece en ese mismo aviso.
+
 ## Cumpleaños con foto y dedicatoria
 
 1. En Biblioteca, cargar una fotografía individual como Imagen. Es opcional; sin foto se muestran las iniciales. La foto se encaja completa en su marco, sin recortarla.

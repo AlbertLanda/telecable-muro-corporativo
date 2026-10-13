@@ -109,7 +109,11 @@
   document.getElementById('pilot-enter').addEventListener('click', function () { enterTV(true); });
   document.getElementById('pilot-exit').addEventListener('click', leaveTV);
   document.getElementById('pilot-hide').addEventListener('click', hideMenu);
-  document.getElementById('pilot-sound').addEventListener('click', function () { wall.startMusic(); requestWake(); hideMenu(); });
+  document.getElementById('pilot-sound').addEventListener('click', function () {
+    var state=wall.getState();
+    if(state.soundEnabled&&!state.soundError)wall.muteSound();else wall.startMusic();
+    requestWake();hideMenu();
+  });
   document.getElementById('pilot-video').addEventListener('click', function () {
     wall.testVideos(); videoFullscreen(); hideMenu();
   });
@@ -131,6 +135,8 @@
   });
   document.addEventListener('keydown', function (event) {
     if (!tvMode) return;
+    var soundPrompt=document.getElementById('player-sound-prompt');
+    if(soundPrompt&&!soundPrompt.hidden&&(event.key==='Enter'||event.keyCode===13))return;
     if (event.key === 'Escape') { leaveTV(); return; }
     if ((event.key === 'Enter' || event.keyCode === 13) && menu.hidden &&
         (!document.activeElement || !document.activeElement.matches('button,input,select,video,a'))) {

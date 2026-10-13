@@ -17,6 +17,10 @@
 </head>
 <body class="managed">
 {{ bootstrap|json_script:"muro-bootstrap" }}
+  <aside id="player-sound-prompt" hidden aria-label="Sonido de la pantalla">
+    <button id="player-enable-sound" type="button">Activar sonido</button>
+    <p id="player-sound-message" role="status">Activa la música y el audio de los videos con un clic o con OK.</p>
+  </aside>
   <header class="pilot-toolbar">
     <div><strong>Muro corporativo</strong><p>Telecable · Comunicación interna</p></div>
     <div class="pilot-actions">
@@ -45,7 +49,7 @@
         <div class="mv-glow mv-glow-a" aria-hidden="true"></div><div class="mv-glow mv-glow-b" aria-hidden="true"></div>
         <div class="mv-orbits" aria-hidden="true"><span></span><span></span><span></span></div>
         <section class="mv-scene mv-photo-scene mv-active" data-scene="0" aria-hidden="false">
-          <img class="mv-hero-photo" src="{% static 'pilot/assets/equipo-ilustrativo.jpg' %}" alt="Imagen ilustrativa generada de un equipo colaborando en una oficina de telecomunicaciones">
+          <img class="mv-hero-photo" alt="" hidden>
           <video class="mv-hero-video" playsinline preload="metadata" hidden></video>
           <div class="mv-photo-shade"></div>
           <div class="mv-photo-tags"><span>SOMOS TELECABLE</span><small class="mv-media-note">Imagen ilustrativa · IA</small></div>

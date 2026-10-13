@@ -1,5 +1,10 @@
 /* Production TV: one edge-to-edge 1024 × 576 scene, scaled by tv.js. */
 body.managed{padding:0;background:#071529;overflow:hidden}
+.managed #player-sound-prompt{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:1002;width:min(390px,calc(100vw - 40px));padding:14px 18px;border:1px solid #68d5e780;border-radius:12px;background:#071c32f2;color:#dfedf9;text-align:center;box-shadow:0 8px 30px #0005;font-family:'Segoe UI',Arial,sans-serif}
+.managed #player-sound-prompt[hidden]{display:none}
+.managed #player-enable-sound{padding:10px 20px;border:0;border-radius:7px;background:#7cdeed;color:#05263e;font:600 16px 'Segoe UI',Arial,sans-serif;cursor:pointer}
+.managed #player-enable-sound:focus-visible{outline:3px solid white;outline-offset:4px}
+.managed #player-sound-message{margin:8px 0 0;font-size:13px;line-height:1.4}
 .managed .pilot-toolbar,.managed .mv-preview-controls,.managed #pilot-exit{display:none!important}
 .managed .pilot-frame{position:fixed;inset:0;width:100%;height:100%;background:#071529}
 .managed #tc-mural-videos{--mv-bg:#081d36;--mv-ink:#fff;--mv-green:#77dfef;--mv-cyan:#22c4e5;visibility:hidden;font-family:'Segoe UI',Arial,Helvetica,sans-serif}

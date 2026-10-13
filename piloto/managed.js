@@ -6,8 +6,44 @@
   let current=null,pending=null,plan=[],projects=[],position=-1,busy=false,closed=false,hasStandardRail=false;
   const status=document.createElement('p');status.id='managed-status';status.setAttribute('role','status');
   document.getElementById('pilot-tv-tools').appendChild(status);
-  document.getElementById('pilot-sound').textContent='Activar sonido';
+  const soundPrompt=document.getElementById('player-sound-prompt'),soundButton=document.getElementById('player-enable-sound');
+  wall.onSoundChange(state=>{
+    const available=state.available&&!closed;
+    soundPrompt.hidden=!available||(state.enabled&&!state.error);
+    soundButton.textContent=state.error?'Reintentar sonido':'Activar sonido';
+    document.getElementById('player-sound-message').textContent=state.error||'Activa la música y el audio de los videos con un clic o con OK.';
+    document.getElementById('pilot-sound').textContent=state.enabled&&!state.error?'Silenciar sonido':'Activar sonido';
+    document.getElementById('pilot-sound').disabled=!available;
+  });
+  soundButton.addEventListener('click',()=>{wall.startMusic();if(soundPrompt.hidden&&soundButton.blur)soundButton.blur();});
+  document.addEventListener('keydown',event=>{
+    if((event.key==='Enter'||event.keyCode===13)&&!soundPrompt.hidden&&
+       (!document.activeElement||document.activeElement===document.body)){
+      event.preventDefault();wall.startMusic();
+    }
+  });
   q('.mv-media-note').hidden=true;
+  let imageSequence=0,nextPhotos=[];
+  function showPhoto(photo,url,alt){
+    const ticket=++imageSequence;photo._muroImageTicket=ticket;
+    photo.hidden=true;photo.onload=null;photo.onerror=null;photo.removeAttribute('src');photo.alt=alt||'';
+    if(!url)return;
+    const reveal=()=>{if(photo._muroImageTicket===ticket)photo.hidden=false;};
+    photo.onerror=()=>{if(photo._muroImageTicket===ticket)photo.hidden=true;};
+    photo.onload=()=>{
+      if(photo._muroImageTicket!==ticket)return;
+      if(typeof photo.decode==='function')photo.decode().then(reveal).catch(()=>{});else reveal();
+    };
+    photo.src=url;
+    if(photo.complete&&photo.naturalWidth>0)photo.onload();
+  }
+  function preloadNext(){
+    const following=plan[(position+1)%plan.length];nextPhotos=[];
+    if(!following)return;
+    const item=following.item;
+    const urls=item.kind==='project_group'?item.projects.map(p=>p.url):[item.kind==='video'?null:item.photo_url||item.url];
+    urls.filter(Boolean).forEach(url=>{const photo=document.createElement('img');photo.src=url;nextPhotos.push(photo);});
+  }
   function text(selector,value){q(selector).textContent=value||'';}
   function dateText(value,options){return new Intl.DateTimeFormat('es-PE',Object.assign({timeZone:'America/Lima'},options)).format(new Date(value));}
   function initials(name){return name.trim().split(/\s+/).slice(0,2).map(s=>s.charAt(0)).join('').toUpperCase();}
@@ -55,8 +91,7 @@
       const label=document.createElement('span'),heading=document.createElement('h2'),value=document.createElement('strong'),date=document.createElement('small');
       const bar=document.createElement('div'),fill=document.createElement('i'),progress=reportedProgress(project);
       tile.className='mv-project-tile';copy.className='mv-project-tile-copy';
-      photo.className='mv-project-tile-photo';photo.alt='';photo.hidden=!project.url;
-      if(project.url){photo.src=project.url;photo.onerror=()=>{photo.hidden=true;};}
+      photo.className='mv-project-tile-photo';showPhoto(photo,project.url,'');
       label.className='mv-project-tile-label';label.textContent=project.featured?'PROYECTO DESTACADO':'PROYECTO';
       heading.textContent=project.title;
       value.className='mv-project-tile-percent'+(progress===null?' mv-unknown':'');value.textContent=progress===null?'Sin avance reportado':progress+'%';
@@ -120,9 +155,7 @@
       text('.mv-program-count',String(position+1).padStart(2,'0')+' / '+String(plan.length).padStart(2,'0'));
     }
     if(entry.scene===0){
-      const image=q('.mv-hero-photo');image.hidden=!item.url||isVideo;
-      if(item.url&&!isVideo){image.src=item.url;image.alt=item.title;}
-      else{image.removeAttribute('src');image.alt='';}
+      showPhoto(q('.mv-hero-photo'),isVideo?null:item.url,item.title);
       text('.mv-photo-copy h1',item.title);text('.mv-photo-copy p',item.body);text('.mv-photo-tags>span',current.config.name||'TELECABLE');
       text('.mv-photo-copy>span',isProject?(item.featured?'PROYECTO DESTACADO':'NUESTROS PROYECTOS'):isCulture?'CULTURA ORGANIZACIONAL':isField?'EVENTOS EN CAMPO':isTeam?'NUESTROS EQUIPOS':isVideo?'VIDEOS DEL EQUIPO':'COMUNICACIÓN INTERNA');
       q('.mv-project-metric').hidden=true;
@@ -159,6 +192,7 @@
     wall.showScene(entry.scene,item.duration||16);
     if(isVideo)wall.showVideo(item.id);
     document.body.classList.add('ready');
+    preloadNext();
   }
   wall.onBoundary(next,()=>!!pending);
   pending=boot.manifest;next();
@@ -171,6 +205,7 @@
       if(response.status===401||response.status===403||response.status===404||response.redirected){
         status.textContent=boot.poll_url.indexOf('/panel/')===0?'Esta vista ya no está disponible. Vuelve al panel e inicia sesión para abrirla de nuevo.':'El enlace de esta pantalla dejó de estar habilitado. Solicita uno nuevo a TI.';
         closed=true;
+        soundPrompt.hidden=true;
         wall.stop();
         const exit=document.exitFullscreen||document.webkitExitFullscreen;
         if(exit){try{Promise.resolve(exit.call(document)).catch(()=>{});}catch(error){}}
