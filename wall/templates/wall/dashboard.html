@@ -34,7 +34,7 @@
 <section class="panel" id="videos">
   <div class="section-head"><div><span class="eyebrow">UNA ESCENA MÁS DEL CARRUSEL</span><h2>Videos a pantalla completa</h2><p>Cada video se reproduce hasta terminar y después sigue la siguiente escena. El campo Orden define dónde aparece.</p></div><a class="button primary" href="{% url 'library' %}?kind=video">+ Subir video</a></div>
   <div class="content-shortcuts"><a class="button" href="{% url 'content_new' %}?kind=video">Elegir video de Biblioteca</a></div>
-  <div class="info-callout"><strong>Subir → preparar → revisar → publicar</strong><p>MP4 de hasta 250 MB; utiliza H.264 con audio AAC para TV. Si tu video tiene sonido, actívalo desde las opciones de la pantalla. El video conserva su proporción y no se recorta.</p></div>
+  <div class="info-callout"><strong>Subir → preparar → revisar → publicar</strong><p>MP4 de hasta 250 MB; utiliza H.264 con audio AAC para TV. Al abrir el borrador o la TV, pulsa «Activar sonido»: habilita la música y el audio de los videos. El video conserva su proporción y no se recorta.</p></div>
   {% include 'wall/content_table.html' with entries=videos empty_title='Añade un video al carrusel' empty_copy='Después de subirlo, selecciona su orden, guarda el borrador y publica.' %}
 </section>
 <section class="panel" id="contents">

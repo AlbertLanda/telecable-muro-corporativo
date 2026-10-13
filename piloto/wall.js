@@ -22,6 +22,8 @@
   let cues=new Set(),quizIndex=-1,quizRevealed=false,quizChoice=null,videoWasPlaying=false;
   let duration=16000;
   let managed=false,managedBoundary=null,managedPending=null,managedEventDate=null,managedSound=false,managedCarousel=false;
+  let soundListener=null,soundError='';
+  function notifySound(){if(soundListener)soundListener({enabled:managedSound,error:soundError,available:!!(tracks.length||clips.length)});}
   function nextScene(){if(managedBoundary)managedBoundary();else rotate(scene+1);}
   function sceneDuration(){return scene===4?Math.max(duration,15000):duration;}
   function progress(){
@@ -117,7 +119,7 @@
   const volume=()=>Number(q('#mv-volume').value)/100;
   const mixedVolume=()=>volume()*([video,playlistVideo].some(v=>!v.paused&&!v.muted&&!v.ended&&v.volume>0) ? .15 : 1);
   function applyMix(){if(master&&context)master.gain.setTargetAtTime(mixedVolume(),context.currentTime,.12);if(!mediaSource)audio.volume=mixedVolume();}
-  function setPlaying(value){playing=value;root.classList.toggle('mv-playing',value);playButton.textContent=value?'Pausar música':mode==='demo'?'Escuchar demo':'Reproducir';q('.mv-now-label').textContent='MÚSICA DE FONDO · '+(value?'SONANDO':'EN PAUSA');}
+  function setPlaying(value){playing=value;root.classList.toggle('mv-playing',value);playButton.textContent=value?'Pausar música':mode==='demo'?'Escuchar demo':'Reproducir';q('.mv-now-label').textContent='MÚSICA DE FONDO · '+(value?'SONANDO':'EN PAUSA');notifySound();}
   async function setupAudio(){
     if(!context){
       const AudioContextClass=window.AudioContext||window.webkitAudioContext;
@@ -158,7 +160,7 @@
         if(AudioContextClass){await setupAudio();if(ticket!==generation)return;if(!mediaSource){mediaSource=context.createMediaElementSource(audio);mediaSource.connect(master);}audio.volume=1;}else audio.volume=mixedVolume();
         await audio.play();if(ticket!==generation){audio.pause();return;}setPlaying(true);status.textContent='Reproduciendo tu música. Los archivos permanecen en esta sesión; no se han subido.';
       }
-    }catch(err){if(ticket===generation){setPlaying(false);stopSynth();status.textContent=errorMessage(err);}}
+    }catch(err){if(ticket===generation){if(managed)soundError='No se pudo iniciar la música. '+errorMessage(err);setPlaying(false);stopSynth();status.textContent=errorMessage(err);}}
     finally{busy=false;playButton.disabled=false;}
   }
   function chooseTrack(index){trackIndex=(index+tracks.length)%tracks.length;audio.src=tracks[trackIndex].url;audio.load();q('.mv-track-title').textContent=tracks[trackIndex].name;q('.mv-track-subtitle').textContent='Mi música · '+(trackIndex+1)+' de '+tracks.length;q('[data-action="track-next"]').disabled=tracks.length<2;}
@@ -172,7 +174,7 @@
   });
   q('[data-action="demo"]').addEventListener('click',()=>{pauseMusic();audio.removeAttribute('src');audio.load();tracks.forEach(track=>URL.revokeObjectURL(track.url));tracks=[];mode='demo';q('.mv-track-title').textContent='Conexiones';q('.mv-track-subtitle').textContent='Demo instrumental · lista para escuchar';q('[data-action="track-next"]').disabled=true;q('[data-action="demo"]').hidden=true;q('#mv-files').value='';setPlaying(false);status.textContent='Demo seleccionada. Pulsa Escuchar demo.';});
   audio.addEventListener('ended',()=>{if(mode==='local'&&tracks.length){pauseMusic();chooseTrack(trackIndex+1);startMusic();}});
-  audio.addEventListener('error',()=>{if(mode==='local'&&audio.currentSrc){setPlaying(false);status.textContent='Este archivo no se puede reproducir aquí. Prueba otro formato o pulsa Siguiente pista.';}});
+  audio.addEventListener('error',()=>{if(mode==='local'&&audio.currentSrc){if(managed)soundError='No se pudo reproducir la música. Revisa el archivo MP3 o WAV en Biblioteca.';setPlaying(false);status.textContent='Este archivo no se puede reproducir aquí. Prueba otro formato o pulsa Siguiente pista.';}});
   audio.addEventListener('pause',()=>{if(mode==='local'&&!audio.ended)setPlaying(false);});
   // A local playlist, independent of the main media scene. Nothing is uploaded.
   let clips=JSON.parse(q('#mvp-demo-data').textContent),nextClip=0,playlistElapsed=0;
@@ -251,7 +253,14 @@
     const ticket=++clipToken;awaitingGesture=false;q('.mvp-retry').hidden=true;
     try{await playlistVideo.play();if(ticket!==clipToken)return;clipLoading=false;clipStall=0;applyMix();renderSchedule();}
     catch(err){if(ticket!==clipToken||!playlistActive)return;clipLoading=false;
-      if(err&&err.name==='NotAllowedError'){awaitingGesture=true;q('.mvp-retry').hidden=false;playlistStatus.textContent='El navegador bloqueó el inicio automático. Pulsa Reproducir video para continuar.';renderSchedule();}
+      if(err&&err.name==='NotAllowedError'){
+        if(managed&&managedSound){
+          managedSound=false;pauseMusic();playlistVideo.muted=true;
+          soundError='El navegador pide activar el sonido de nuevo. Pulsa Activar sonido.';notifySound();
+          playPlaylistVideo();return;
+        }
+        awaitingGesture=true;q('.mvp-retry').hidden=false;playlistStatus.textContent='El navegador bloqueó el inicio automático. Pulsa Reproducir video para continuar.';renderSchedule();
+      }
       else if(err&&err.name==='AbortError'){return;}
       else failPlaylistClip();
     }
@@ -354,8 +363,16 @@
       q('#mvp-interval').value=String(value);playlistElapsed=0;renderSchedule();
     },
     setTvMode: function(value){playlistVideo.controls=!value;},
-    startMusic: function(){managedSound=true;if(playlistActive)playlistVideo.muted=false;if(!playing&&(!managed||tracks.length))startMusic();},
-    getState: function(){return {paused:paused,playlistActive:playlistActive,awaitingGesture:awaitingGesture,scene:scene};},
+    startMusic: function(){
+      managedSound=true;soundError='';
+      // Both media starts stay in the user's click/OK gesture, before any await.
+      if(playlistActive){playlistVideo.muted=false;if(!paused&&!document.hidden)playPlaylistVideo();}
+      if(!playing&&(!managed||tracks.length))startMusic();
+      applyMix();notifySound();
+    },
+    muteSound: function(){managedSound=false;soundError='';playlistVideo.muted=true;video.muted=true;pauseMusic();applyMix();notifySound();},
+    onSoundChange: function(handler){soundListener=handler;notifySound();},
+    getState: function(){return {paused:paused,playlistActive:playlistActive,awaitingGesture:awaitingGesture,scene:scene,soundEnabled:managedSound,soundError:soundError};},
     onBoundary: function(handler,hasPending){managedBoundary=handler;managedPending=hasPending;},
     showScene: function(index,seconds){duration=Math.max(8,Number(seconds)||16)*1000;rotate(index);},
     showVideo: function(id){
@@ -377,11 +394,11 @@
       clips=(data.videos||[]).map(c=>({id:String(c.id),name:c.title,url:c.url,demo:false}));nextClip=0;playlistElapsed=0;
       const newMusic=data.music_url||null;
       if(newMusic!==(tracks[0]&&tracks[0].url||null)){
-        const resume=playing;pauseMusic();tracks=newMusic?[{name:'Música del equipo',url:newMusic}]:[];
+        const resume=managedSound;soundError='';pauseMusic();tracks=newMusic?[{name:'Música del equipo',url:newMusic}]:[];
         if(tracks.length){mode='local';chooseTrack(0);if(resume)startMusic();}
         else{audio.removeAttribute('src');audio.load();}
       }
-      renderPlaylist();updateClock();return true;
+      renderPlaylist();updateClock();notifySound();return true;
     },
     stop: function(){
       paused=true;video.pause();playlistVideo.pause();pauseMusic();rotationState();
