@@ -2,6 +2,18 @@
   'use strict';
   // Never refresh the editor automatically: doing so could discard unsaved work.
   let dirty=false;
+  let savingForm=null,savingDirty=false,savingButtons=[];
+  const saveFeedback=document.getElementById('save-feedback');
+  function resetSaving(){
+    if(!savingForm)return;
+    savingForm.classList.remove('is-saving');
+    savingButtons.forEach(({button,disabled,label,busy})=>{
+      button.disabled=disabled;button.textContent=label;
+      if(busy===null)button.removeAttribute('aria-busy');else button.setAttribute('aria-busy',busy);
+    });
+    dirty=savingDirty;savingForm=null;savingButtons=[];
+    if(saveFeedback)saveFeedback.hidden=true;
+  }
   const publishButtons=Array.from(document.querySelectorAll('[data-publish-button]'));
   const originalDisabled=publishButtons.map(button=>button.disabled);
   function markDirty(){
@@ -13,11 +25,28 @@
     if(form.querySelector('.errorlist'))markDirty();
     form.addEventListener('input',markDirty);
     form.addEventListener('change',markDirty);
-    form.addEventListener('submit',()=>{dirty=false;});
+    form.addEventListener('submit',event=>{
+      if(event.defaultPrevented)return;
+      if(savingForm){event.preventDefault();return;}
+      // Native validation has already passed. Keep fields enabled so the browser
+      // still sends every value, especially the selected file and CSRF token.
+      savingForm=form;savingDirty=dirty;dirty=false;
+      const uploading=form.enctype==='multipart/form-data';
+      const label=uploading?'Guardando archivo…':'Guardando cambios…';
+      savingButtons=Array.from(form.querySelectorAll('button')).filter(button=>button.type==='submit').map(button=>({button,disabled:button.disabled,label:button.textContent,busy:button.getAttribute('aria-busy')}));
+      savingButtons.forEach(({button})=>{button.disabled=true;button.textContent=label;button.setAttribute('aria-busy','true');});
+      form.classList.add('is-saving');
+      if(saveFeedback){
+        document.getElementById('save-feedback-title').textContent=label;
+        document.getElementById('save-feedback-detail').textContent=uploading?'Mantén esta página abierta. Los videos y archivos grandes pueden tardar un poco más.':'Mantén esta página abierta hasta que termine el guardado.';
+        saveFeedback.hidden=false;
+      }
+    });
   });
   // A restored page must not keep the disabled state left by its old document.
   window.addEventListener('pageshow',event=>{
     if(!event.persisted)return;
+    resetSaving();
     if(dirty)markDirty();
     else publishButtons.forEach((button,index)=>{button.disabled=originalDisabled[index];});
   });

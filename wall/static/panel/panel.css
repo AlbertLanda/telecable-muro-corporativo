@@ -9,3 +9,11 @@
 .project-mini-progress::-webkit-progress-bar{background:#e3edf8}
 .project-mini-progress::-webkit-progress-value{background:#2878c8}
 .project-report-preview{font-size:18px;font-weight:650;color:#175fa9;padding-top:12px;border-top:1px solid #dce7f4}
+.save-feedback{position:fixed;right:24px;bottom:24px;z-index:100;display:flex;align-items:flex-start;gap:15px;width:min(430px,calc(100vw - 32px));padding:20px 22px;border:1px solid #b9cdea;border-radius:14px;background:#fff;box-shadow:0 12px 40px #172c4726;pointer-events:none}
+.save-feedback strong{display:block;color:#174b93;font-size:17px;line-height:1.4}
+.save-feedback p{margin:6px 0 0;font-size:13px;line-height:1.5}
+.save-spinner{flex:none;width:24px;height:24px;margin-top:2px;border:3px solid #dbe7f8;border-top-color:var(--accent);border-radius:50%;animation:save-spin .85s linear infinite}
+.is-saving button:disabled{opacity:1;background:#e8eff9!important;border-color:#c7d8ef;color:#34567e;cursor:wait}
+@keyframes save-spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){.save-feedback{right:16px;bottom:16px;padding:17px}}
+@media(prefers-reduced-motion:reduce){.save-spinner{animation:none}}
