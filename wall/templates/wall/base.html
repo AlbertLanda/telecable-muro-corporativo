@@ -16,6 +16,7 @@
 <nav class="app-nav" aria-label="Navegación del panel">
   <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'content_edit' or request.resolver_match.url_name == 'content_new' or request.resolver_match.url_name == 'birthday_edit' or request.resolver_match.url_name == 'birthday_new' %}aria-current="page"{% endif %}>Contenido y ajustes</a>
   <a href="{% url 'library' %}" {% if request.resolver_match.url_name == 'library' %}aria-current="page"{% endif %}>Biblioteca</a>
+  <a href="{% url 'music' %}" {% if request.resolver_match.url_name == 'music' or request.resolver_match.url_name == 'music_edit' or request.resolver_match.url_name == 'music_new' %}aria-current="page"{% endif %}>Música</a>
   <a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}aria-current="page"{% endif %}>Publicaciones</a>
   {% if perms.wall.manage_displays %}<a href="{% url 'displays' %}" {% if request.resolver_match.url_name == 'displays' %}aria-current="page"{% endif %}>Pantallas</a>{% endif %}
 </nav>

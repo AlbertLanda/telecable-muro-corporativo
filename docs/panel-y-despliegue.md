@@ -29,7 +29,11 @@ Esta mejora no añade tablas ni servicios de Azure. Después de desplegar, recar
 
 La vista real no incluye una fotografía de ejemplo como fondo inicial. Prepara las imágenes de la siguiente escena y oculta una foto hasta completar su carga y decodificación. Si el archivo falla o tarda, conserva el fondo corporativo; nunca muestra otra fotografía bajo el texto actual.
 
-Cuando hay música o videos, el borrador y la pantalla muestran **Activar sonido** al abrirse. Un clic o OK habilita la música seleccionada y el audio de los videos para esa sesión. El navegador puede exigir repetirlo al recargar. El menú de pantalla permite silenciar y volver a activar; la música baja de volumen mientras suena un video. Si el navegador rechaza el audio, el carrusel continúa en silencio y muestra el control para reintentarlo. Un error de archivo de música aparece en ese mismo aviso.
+El borrador y la pantalla intentan iniciar el sonido al abrirse. Si el navegador bloquea el inicio automático, muestran **Activar sonido**: un clic o OK habilita la música y el audio de los videos para esa sesión. El navegador puede exigir repetirlo al recargar. El menú permite silenciar y volver a activar; la música baja de volumen mientras suena un video. No se fuerza el permiso del navegador ni se garantiza que una web impida la suspensión de la TV.
+
+En **Música**, añade los MP3 o WAV de Biblioteca y define su orden (10, 20, 30…). La lista se reproduce completa, en secuencia y en bucle mientras el muro está abierto; al recargar comienza por la primera. Una canción con error se salta, sin reintentos infinitos si todas fallan. Guarda y publica para actualizar las TV. La canción anterior se conserva como primer elemento al instalar esta mejora; las publicaciones históricas conservan su música original. Desmarcar «Incluir al publicar» la excluye sin retirarla de la lista. Quitarla de la lista conserva el archivo en Biblioteca.
+
+Los cambios de contenido no reinician la canción que está sonando. Si cambia la lista y conserva esa misma canción, termina de reproducirla antes de continuar con el nuevo orden; si se elimina, comienza por la primera disponible. Silenciar se respeta durante las actualizaciones de esa sesión.
 
 ## Cumpleaños con foto y dedicatoria
 

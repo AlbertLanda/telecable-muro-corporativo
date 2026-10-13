@@ -112,7 +112,7 @@
     projects=data.contents.filter(c=>c.kind==='project');
     projects=projects.filter(c=>c.featured).concat(projects.filter(c=>!c.featured));
     const eventDate=renderSidebar(data);
-    wall.configure({carousel:true,config:data.config,eventDate:eventDate,music_url:data.music_url,videos:data.contents.filter(c=>c.kind==='video')});
+    wall.configure({carousel:true,config:data.config,eventDate:eventDate,music_url:data.music_url,music_tracks:data.music_tracks,videos:data.contents.filter(c=>c.kind==='video')});
     text('.mv-channel strong',data.config.name||'Somos Telecable');
     text('.mv-footer>span:last-child',data.demo?'DEMOSTRACIÓN · DATOS FICTICIOS':data.preview?'BORRADOR · SIN PUBLICAR':'PUBLICADO · V'+data.version);
     plan=[];let grouped=false;
@@ -196,6 +196,8 @@
   }
   wall.onBoundary(next,()=>!!pending);
   pending=boot.manifest;next();
+  // One attempt on entry. Publication refreshes never override a user's mute.
+  wall.startMusic();
   async function poll(){
     if(!boot.poll_url||busy||closed||document.hidden)return;
     busy=true;

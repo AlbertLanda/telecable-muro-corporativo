@@ -59,6 +59,20 @@ class Wall(models.Model):
         return self.name
 
 
+class MusicTrack(models.Model):
+    wall = models.ForeignKey(Wall, on_delete=models.CASCADE, related_name='music_tracks')
+    asset = models.ForeignKey(Asset, verbose_name='Canción de Biblioteca', on_delete=models.PROTECT, related_name='music_tracks')
+    sort_order = models.PositiveIntegerField('Orden de reproducción', default=10)
+    enabled = models.BooleanField('Incluir al publicar', default=True)
+
+    class Meta:
+        ordering = ['sort_order','pk']
+
+    def clean(self):
+        if self.asset_id and self.asset.kind != 'audio':
+            raise ValidationError({'asset':'Selecciona un archivo de audio de Biblioteca.'})
+
+
 class Content(models.Model):
     KINDS = [('project','Proyecto'),('team','Nuestros equipos'),('culture','Valor de cultura organizacional'),('field_event','Evento en campo'),('image','Imagen / anuncio'),('video','Video'),('message','Mensaje'),('event','Evento'),('recognition','Reconocimiento')]
     wall = models.ForeignKey(Wall, on_delete=models.CASCADE, related_name='contents')

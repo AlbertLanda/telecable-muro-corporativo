@@ -20,7 +20,7 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   t.advance(10000);
   assert.equal(t.q('.mv-photo-copy h1').textContent,'Segunda publicación');
   t.click('video-test');await tick();const player=t.q('.mvp-player');
-  assert.equal(player.src,'/tv/token/archivo/clip/');assert.equal(player.muted,true);
+  assert.equal(player.src,'/tv/token/archivo/clip/');assert.equal(player.muted,false);
   response.signature='v3';response.version=3;response.contents[0].title='Después del video';
   t.advance(29000);await tick();
   assert.equal(t.q('.mv-photo-copy h1').textContent,'Segunda publicación');assert(t.win.TelecableWall.getState().playlistActive);
@@ -163,7 +163,7 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   assert(carousel.root.classList.contains('mv-team-focus'));assert.equal(carousel.q('.mv-team-roles').children.length,3);
   assert.equal(carousel.q('.mv-hero-photo').src,'/team/');
   carousel.advance(8000);await tick();
-  const movie=carousel.q('.mvp-player');assert.equal(movie.src,'/clip-a/');assert(movie.muted);
+  const movie=carousel.q('.mvp-player');assert.equal(movie.src,'/clip-a/');assert(!movie.muted);
   assert(carousel.q('.mv-team-roles').hidden);assert.equal(carousel.q('.mv-program-count').textContent,'02 / 04');
   // More than the old one-minute interval: neither timer nor scene duration cuts the clip.
   for(let i=0;i<7;i++){movie.currentTime+=10;carousel.advance(10000);await tick();assert.equal(movie.src,'/clip-a/');}
@@ -203,7 +203,7 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   mediaData.contents=[{kind:'team',title:'Team A',url:'/team-a/',duration:8},{kind:'team',title:'Team B',url:'/team-b/',duration:8},{kind:'video',id:33,title:'Corporate video',url:'/corporate-video/'}];
   media.win.MURO_BOOT={manifest:mediaData,poll_url:null};media.run(code,{AbortController,setTimeout,clearTimeout});
   const hero=media.q('.mv-hero-photo'),prompt=media.doc.getElementById('player-sound-prompt'),music=media.q('.mv-audio'),clip=media.q('.mvp-player');
-  assert(hero.hidden);assert(!prompt.hidden);assert(music.paused);
+  await tick();assert(hero.hidden);assert(prompt.hidden);assert(!music.paused,'Opening the wall attempts native audio playback');
   let decoded;hero.decode=()=>new Promise(resolve=>{decoded=resolve;});hero.onload();
   media.advance(8000);assert.equal(hero.src,'/team-b/');assert(hero.hidden);
   decoded();await tick();assert(hero.hidden,'A late decode of A must not reveal B before B is ready');
@@ -221,5 +221,44 @@ const initial={signature:'v1',version:1,config:{name:'Muro real',welcome_title:'
   media.doc.getElementById('player-enable-sound').click();await tick();await tick();
   assert(clip.muted);assert(music.paused);assert(!prompt.hidden);assert(!media.win.TelecableWall.getState().soundEnabled);
   assert.equal(media.q('.mv-hero-photo').getAttribute('src'),null);
-  console.log('PASS: managed carousel, publication sync, no sample-photo flash, late image decode/error, visible sound control, music/video activation, ducking, mute and autoplay recovery.');
+  // Native autoplay avoids a suspended AudioContext; permission denial is recoverable.
+  const songs=setup(false,true),songData=structuredClone(initial),songAudio=songs.q('.mv-audio');
+  songData.contents=[{kind:'message',title:'Muro con música',duration:40}];
+  songData.music_tracks=[{id:1,title:'Primera',url:'/one/'},{id:2,title:'Segunda',url:'/two/'},{id:3,title:'Tercera',url:'/three/'}];
+  songData.music_url='/one/';
+  songs.win.AudioContext=function(){throw new Error('Managed playback must not wait for AudioContext permission');};
+  let allowed=false,starts=0;
+  const songPlay=songAudio.play.bind(songAudio);
+  songAudio.play=()=>{starts++;return allowed?songPlay():Promise.reject(Object.assign(new Error('permission'),{name:'NotAllowedError'}));};
+  songs.win.MURO_BOOT={manifest:songData,poll_url:null};songs.run(code,{AbortController,setTimeout,clearTimeout});await tick();
+  const songPrompt=songs.doc.getElementById('player-sound-prompt');
+  assert.equal(starts,1);assert(!songPrompt.hidden);assert(songAudio.paused);assert(!songs.win.TelecableWall.getState().soundEnabled);
+  allowed=true;songs.doc.emit('keydown',{key:'Enter'});await tick();assert(!songAudio.paused);assert(songPrompt.hidden);
+  assert.equal(songAudio.src,'/one/');
+  for(const url of ['/two/','/three/','/one/']){songAudio.ended=true;songAudio.emit('ended');await tick();assert.equal(songAudio.src,url);assert(!songAudio.paused);}
+  const playlistConfig={carousel:true,config:{},videos:[],music_tracks:songData.music_tracks};
+  songAudio.currentTime=42;songs.win.TelecableWall.configure(playlistConfig);await tick();
+  assert.equal(songAudio.currentTime,42,'Content refresh does not restart music');
+  const reordered=[songData.music_tracks[2],songData.music_tracks[0],songData.music_tracks[1]];
+  songs.win.TelecableWall.configure({...playlistConfig,music_tracks:reordered});await tick();
+  assert.equal(songAudio.currentTime,42);assert.match(songs.q('.mv-track-subtitle').textContent,/2 de 3/);
+  songAudio.ended=true;songAudio.emit('ended');await tick();assert.equal(songAudio.src,'/two/');
+  songs.win.TelecableWall.muteSound();songs.win.TelecableWall.configure({...playlistConfig,music_tracks:[songData.music_tracks[0]]});await tick();
+  assert(songAudio.paused,'Publication changes respect a manual mute');
+  songs.win.TelecableWall.configure({...playlistConfig,music_tracks:[],music_url:'/legacy-must-not-return/'});
+  assert.equal(songAudio.src,'');assert(songAudio.paused);assert(songPrompt.hidden,'Explicit empty playlist never falls back to legacy music');
+
+  // A broken song is skipped once; an entirely broken list stops instead of spinning.
+  const failSongs=setup(false,true),failedAudio=failSongs.q('.mv-audio'),failedData=structuredClone(songData);
+  let failing=true,attempts=[];
+  const workingPlay=failedAudio.play.bind(failedAudio);
+  failedAudio.play=()=>{attempts.push(failedAudio.src);return failing?Promise.reject(Object.assign(new Error('bad format'),{name:'NotSupportedError'})):workingPlay();};
+  failSongs.win.MURO_BOOT={manifest:failedData,poll_url:null};failSongs.run(code,{AbortController,setTimeout,clearTimeout});
+  await new Promise(resolve=>setTimeout(resolve,600));
+  assert.deepEqual(attempts,['/one/','/two/','/three/']);
+  assert(!failSongs.doc.getElementById('player-sound-prompt').hidden);assert(failedAudio.paused);
+  failing=false;failSongs.doc.getElementById('player-enable-sound').click();await tick();assert(!failedAudio.paused);
+  failedAudio.ended=true;failedAudio.emit('ended');await tick();assert.equal(failedAudio.src,'/one/','Manual retry makes previously failed songs available again');
+  failSongs.win.TelecableWall.muteSound();
+  console.log('PASS: managed carousel, publication sync, no sample-photo flash, late image decode/error, visible sound control, music/video activation, ducking, autoplay fallback, ordered music loop, live reordering, mute and bounded error recovery.');
 })().catch(error=>{console.error(error);process.exitCode=1});

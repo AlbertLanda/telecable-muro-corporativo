@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Max
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -11,8 +12,8 @@ from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_safe
 from django.utils import timezone
-from .forms import AssetForm, BirthdayForm, ContentForm, DisplayForm, WallForm
-from .models import Asset, Birthday, Content, Display, Wall, display_token
+from .forms import AssetForm, BirthdayForm, ContentForm, DisplayForm, MusicTrackForm, WallForm
+from .models import Asset, Birthday, Content, Display, MusicTrack, Wall, display_token
 from .services import birthday_snapshot, check_revision, get_wall, manifest, publish, published_manifest, snapshot
 
 
@@ -75,6 +76,20 @@ def birthday_edit(request, pk=None):
 @access()
 @require_safe
 @never_cache
+def music(request):
+    wall = get_wall()
+    return render(request,'wall/music.html',{'wall':wall,'tracks':wall.music_tracks.select_related('asset'),
+                                            'enabled_count':wall.music_tracks.filter(enabled=True).count()})
+
+
+@access()
+def music_edit(request, pk=None):
+    return edit_entry(request,MusicTrack,MusicTrackForm,'Canción',pk)
+
+
+@access()
+@require_safe
+@never_cache
 def birthday_preview(request, pk):
     try:
         initial = birthday_preview_data(pk)
@@ -116,6 +131,8 @@ def edit_entry(request, model, form_class, title, pk):
     wall = get_wall()
     entry = get_object_or_404(model,pk=pk,wall=wall) if pk else model(wall=wall)
     initial = {'revision':wall.revision}
+    if not pk and model is MusicTrack:
+        initial['sort_order'] = (wall.music_tracks.aggregate(n=Max('sort_order'))['n'] or 0) + 10
     if not pk and model is Content and request.GET.get('kind') in dict(Content.KINDS):
         initial['kind'] = request.GET['kind']
     # Library shortcuts only preselect an existing, compatible asset; GET never saves.
@@ -126,6 +143,8 @@ def edit_entry(request, model, form_class, title, pk):
             asset = None
         if asset and model is Birthday and asset.kind == 'image':
             initial['photo'] = asset.pk
+        elif asset and model is MusicTrack and asset.kind == 'audio':
+            initial['asset'] = asset.pk
         elif asset and model is Content and asset.kind in ('image','video'):
             initial.update(asset=asset.pk,title=asset.title)
             if asset.kind == 'video' or initial.get('kind') not in ('project','team','culture','field_event'):
@@ -143,10 +162,10 @@ def edit_entry(request, model, form_class, title, pk):
                     wall.revision += 1
                     wall.save(update_fields=['revision'])
                     messages.success(request,'Guardado en el borrador. Revisa la vista previa y publica para enviarlo a las pantallas.')
-                    return redirect('dashboard')
+                    return redirect('music' if model is MusicTrack else 'dashboard')
                 except ValidationError as error:
                     form.add_error(None,error)
-    return render(request,'wall/form.html',{'form':form,'title':title,'is_birthday':model is Birthday,
+    return render(request,'wall/music_form.html' if model is MusicTrack else 'wall/form.html',{'form':form,'title':title,'is_birthday':model is Birthday,
                   'entry':entry,'asset_choices':asset_choices(),
                   'caption':'Completa los pasos, guarda el borrador y revisa el resultado antes de publicar.'})
 
@@ -154,7 +173,7 @@ def edit_entry(request, model, form_class, title, pk):
 @access()
 @require_POST
 def delete_entry(request, kind, pk):
-    model = {'content':Content,'birthday':Birthday}.get(kind)
+    model = {'content':Content,'birthday':Birthday,'music':MusicTrack}.get(kind)
     if model is None:
         raise Http404
     with transaction.atomic():
@@ -167,22 +186,25 @@ def delete_entry(request, kind, pk):
             messages.success(request,'Retirado del borrador. Publica para actualizar las pantallas.')
         except ValidationError as error:
             messages.error(request,error.messages[0])
-    return redirect('dashboard')
+    return redirect('music' if model is MusicTrack else 'dashboard')
 
 
 @access()
 @never_cache
 def library(request):
     uploading_video = request.GET.get('kind') == 'video'
-    form = AssetForm(request.POST or None,request.FILES or None,initial={'kind':'video'} if uploading_video else None)
+    uploading_audio = request.GET.get('kind') == 'audio'
+    form = AssetForm(request.POST or None,request.FILES or None,initial={'kind':request.GET['kind']} if uploading_video or uploading_audio else None)
     if request.method == 'POST' and form.is_valid():
         data = form.cleaned_data
         asset = Asset.objects.create(title=data['title'],kind=data['kind'],file=data['file'],size=data['file'].size,content_type=data['content_type'],created_by=request.user)
         messages.success(request,'Archivo guardado. Ya puedes seleccionarlo en un contenido del borrador.')
         if uploading_video and asset.kind == 'video':
             return redirect(reverse('content_new')+'?asset='+str(asset.pk))
+        if uploading_audio and asset.kind == 'audio':
+            return redirect(reverse('music_new')+'?asset='+str(asset.pk))
         return redirect('library')
-    return render(request,'wall/library.html',{'form':form,'assets':Asset.objects.all(),'uploading_video':uploading_video})
+    return render(request,'wall/library.html',{'form':form,'assets':Asset.objects.all(),'uploading_video':uploading_video,'uploading_audio':uploading_audio})
 
 
 @access('publish_wall')

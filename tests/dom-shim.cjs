@@ -53,7 +53,7 @@ function setup(reduced=false,production=false){
  const doc=new El(production?managedFixture:fixture),root=doc.querySelector('#tc-mural-videos');doc.hidden=false;doc.getElementById=id=>doc.querySelector('#'+id);doc.createElement=tag=>new El({tag,attrs:{},children:[]});doc.createTextNode=t=>new Text(t);
  let now=0,nextId=1,intervals=new Map();const motion={matches:reduced,listeners:[],addEventListener(k,f){this.listeners.push(f)},removeEventListener(k,f){this.listeners=this.listeners.filter(x=>x!==f)}};
  const win={matchMedia:()=>motion,addEventListener(){}};doc.body=doc.querySelector('body');
- const ctx={document:doc,window:win,performance:{now:()=>now},setInterval:(fn,ms)=>{const id=nextId++;intervals.set(id,{fn,ms,next:now+ms});return id},clearInterval:id=>intervals.delete(id),requestAnimationFrame:()=>1,cancelAnimationFrame(){},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Intl,Date,Set,console};
+ const ctx={document:doc,window:win,setTimeout,clearTimeout,performance:{now:()=>now},setInterval:(fn,ms)=>{const id=nextId++;intervals.set(id,{fn,ms,next:now+ms});return id},clearInterval:id=>intervals.delete(id),requestAnimationFrame:()=>1,cancelAnimationFrame(){},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Intl,Date,Set,console};
  vm.runInNewContext(source,ctx);
  function advance(ms){const end=now+ms;while(true){let soon=Infinity;for(const t of intervals.values())soon=Math.min(soon,t.next);if(soon>end)break;now=soon;for(const t of [...intervals.values()])if(t.next===now){t.next+=t.ms;t.fn();}}now=end;}
  const q=s=>root.querySelector(s),scene=()=>q('.mv-active').dataset.scene,click=a=>q('[data-action="'+a+'"]').click();

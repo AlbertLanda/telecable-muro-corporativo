@@ -4,6 +4,9 @@ from . import views
 urlpatterns = [
     path('panel/',views.dashboard,name='dashboard'),
     path('panel/biblioteca/',views.library,name='library'),
+    path('panel/musica/',views.music,name='music'),
+    path('panel/musica/nueva/',views.music_edit,name='music_new'),
+    path('panel/musica/<int:pk>/',views.music_edit,name='music_edit'),
     path('panel/contenido/nuevo/',views.content_edit,name='content_new'),
     path('panel/contenido/<int:pk>/',views.content_edit,name='content_edit'),
     path('panel/cumpleanos/nuevo/',views.birthday_edit,name='birthday_new'),
