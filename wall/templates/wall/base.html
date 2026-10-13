@@ -24,5 +24,9 @@
   {% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
   {% block content %}{% endblock %}
 </main>
+<aside class="save-feedback" id="save-feedback" role="status" aria-live="polite" aria-atomic="true" hidden>
+  <span class="save-spinner" aria-hidden="true"></span>
+  <div><strong id="save-feedback-title"></strong><p id="save-feedback-detail"></p></div>
+</aside>
 <footer class="app-footer"><span>Telecable · Comunicación interna</span><span>Fechas y horarios de Lima</span></footer>
 </body></html>
